@@ -60,6 +60,7 @@ if __name__ == "__main__":
 
     # # The case of slotted aloha with threshold -3dB, without power increment
     config_f = 'case_l=1_m=1_threshold=-10dB_N=500.json'
+    print "Now do simulation with configuration file: ", config_f
     with open(config_f) as json_file:
         json_config = json.load(json_file)
 
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     P[0] = 1
 
     ana_result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, THRESLD, ana_step)
-    ana_result_f = "analytical_result_threshold_{0}_l={1}_m={2}.csv".format(THRESLD, l, m)
+    ana_result_f = "analytical_result_threshold={0}_l={1}_m={2}.csv".format(THRESLD, l, m)
     with open(ana_result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')
         for n, vector_p in enumerate(ana_result, 1):
@@ -108,7 +109,7 @@ if __name__ == "__main__":
 
     # 真他妈的 Bizart啊。。。我直接设定 intensity = 0.8 算出来的 丢包率是 0.9 从0.1开始，现在就接近于0了。。。什么世道
 
-    sim_result_f = "sim_result_sim_{0}_N_{1}_threshold_{2}_l={3}_m={4}.csv".format(SIM_NB, N, THRESLD, l, m)
+    sim_result_f = "sim_result_sim={0}_N={1}_threshold={2}_l={3}_m={4}.csv".format(SIM_NB, N, THRESLD, l, m)
 
     with open(sim_result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')
