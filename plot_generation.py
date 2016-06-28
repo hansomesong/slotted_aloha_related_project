@@ -9,8 +9,8 @@ import matplotlib.ticker as ticker
 
 
 
-sim_result_f = "sim_result_sim_1_N_500_threshold_0.5_l=1_m=1.csv"
-ana_result_f = "analytical_result_threshold_0.5_l=1_m=1.csv"
+sim_result_f = "sim_result_sim_1_N_500_threshold_0.1_l=1_m=1.csv"
+ana_result_f = "analytical_result_threshold_0.1_l=1_m=1.csv"
 
 
 plt.figure(1)
@@ -23,7 +23,7 @@ with open(ana_result_f, 'r') as ana_f_handler, open(sim_result_f, 'r') as sim_f_
 
 
     sim_intensity = [float(e[-1]) for e in sim_csv]
-    sim_plr = [float(e[0]) for e in sim_csv]
+    sim_plr = [float(e[-2]) for e in sim_csv]
     print len(ana_intensity)
     print len(ana_plr)
 

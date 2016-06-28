@@ -153,8 +153,6 @@ class Device(object):
         self.generate_pkt(round_index)
         return pkt
 
-
-
     def backoff(self, packet, round_index):
         '''
             注意：Backoff 算法应该同时包含了对于达到 最大传输次数的 包的处理工作。保证 Device 各种 Buffer 中的 packet 都
@@ -256,8 +254,6 @@ class Channel(object):
     def create_one_slot(self):
         self.history.append([])
 
-
-
     def statistics(self, warm_up_t):
         #Statistics 2: 在成功还有失败的包里统计
         succ = self.get_succ_pkts(warm_up_t)
@@ -299,36 +295,53 @@ def run_simulation(channel, threld, seed, warm_up_t, sim_duration):
     return channel.statistics(warm_up_t)
 
 
-def iteration(alpha_start, alpha_end, sim_step, THRESLD, N, POWER_LEVELS, MAX_TRANS, SIM_NB, WARM_UP, SIM_DURATION):
-    results = []
-    while alpha_start <= alpha_end:
-        result = []
-        pool = multiprocessing.Pool(SIM_NB)
+def run_simulation2(channel, alpha, N, threld, power_levels, max_trans, seed, warm_up_t, sim_duration):
+    '''
+        @sim_para:
+        @seed: a random number generator seed to guarantee that each simulation will generate a different r.v.s
+        This method is used to execute simulation with given simulation parameters.
+        @alpha      : the fresh packet arrival intensity in a slot
+        @N          : the involved M2M device number in simulation
+        @threld     : the threshold of SINR to assure the reception of transmission
+    '''
+    print "xxxxxxx"
+    np.random.seed(seed)
 
-        # Populate the task list
-        tasks =[]
-        for n in range(SIM_NB):
-            devices = [Device(i, alpha_start/N, POWER_LEVELS, MAX_TRANS) for i in range(N)]
-            channel = Channel(devices, MAX_TRANS)
-            tasks.append((channel, THRESLD, int(time()+n*100), WARM_UP, SIM_DURATION, ))
+    for j in range(sim_duration):
+        channel.create_one_slot()
+        channel.rec_pkt(j, threld)
 
-        # Start all tasks
-        result = [pool.apply_async(run_simulation, t) for t in tasks]
+    sim_result = channel.statistics(warm_up_t)
+    sim_result.append(alpha)
 
+    return sim_result
 
-        # Iterate the final result
-        tmp_array = np.array([prob_vector.get() for prob_vector in result])
+def do_main(N, alpha_start, alpha_end, sim_step, thresld, power_levels, max_trans, warm_up_t, sim_duration, process_num):
 
-        # Calculate the average of all simulations
-        row = [float("{0:.4g}".format(p)) for p in np.mean(np.array(tmp_array), axis=0)]
-        row.append(alpha_start)
-        result.append(row)
-        results.append(result)
-        alpha_start += sim_step
-        print alpha_start
+    alpha_interval = np.linspace(alpha_start, alpha_end, (alpha_end -alpha_start)/sim_step)
 
-    return results
+    pool = multiprocessing.Pool(process_num)
 
+    # Populate the task list
+    tasks =[]
+
+    for alpha in alpha_interval:
+        tasks.append(
+            (alpha, N, thresld, power_levels, max_trans, int(time()+n*100), warm_up_t, sim_duration, )
+        )
+
+    # Start all tasks
+    result = [pool.apply_async(run_simulation2, t) for t in tasks]
+
+    # Iterate the final result
+    result = np.array([prob_vector.get() for prob_vector in result])
+
+    # sort the result according to the alpha (namely, intensity)
+    result = sorted(result, key=lambda x: x[-1])
+
+    print "In do_main() method body..."
+    print result
+    return result
 
 if __name__ == "__main__":
     start = time()
