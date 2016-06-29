@@ -43,7 +43,7 @@ def solve_fxp(P, delta, alpha, l, m, threld):
     ecart = 100
 
     K = P.size
-    M = [np.floor(l**k*m**(K-1-k)/threld) -1 for k in range(K-1)]
+    M = [np.floor(l**k*m**(K-1-k)/threld) -l**k*m**(K-1-k) for k in range(K-1)]
 
     tmp = np.copy(P)
     # print "For intensity:", alpha
@@ -61,7 +61,7 @@ def solve_fxp(P, delta, alpha, l, m, threld):
         P = np.copy(tmp)
         i += 1
     # Note that np.floor(l**(K-1)/threld-M[-1])
-    p_loss = P[-1]*(1-cul_power_chf2cdf(np.floor(l**(K-1)/threld-l**(K-1)), P, alpha, l, m))
+    p_loss = P[-1]*(1-cul_power_chf2cdf(np.floor(l**(K-1)/threld -l**(K-1)), P, alpha, l, m))
     # p_loss = (1-np.exp(-sum(P)*alpha) - sum(P)*alpha*np.exp(-sum(P)*alpha))**MAX_TRANS
     # p_loss = (1-np.exp(-sum(P)*alpha))**MAX_TRANS
     # print "alpha", alpha, "P[-1]", P[-1], "\t\tFailed Proba", 1-cul_power_chf2cdf(np.floor(l**(K-1)/threld), P, alpha, l, m), "proba_loss", p_loss
