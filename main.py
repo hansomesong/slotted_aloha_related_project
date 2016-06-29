@@ -58,7 +58,7 @@ def run_analytical_simulation(config_f):
 if __name__ == "__main__":
     # run_analytical_simulation('case_l=1_m=1_threshold=-3dB_N=500.json')
     # # The case of slotted aloha with threshold -3dB, without power increment
-    config_f = os.path.join('exp_configs', 'case_l=2_m=1_threshold=-10dB_N=2000.json')
+    config_f = os.path.join('exp_configs', 'case_l=1_m=1_threshold=0dB_N=500.json')
     print "Now do simulation with configuration file: ", config_f
     with open(config_f) as json_file:
         json_config = json.load(json_file)
@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     # 真他妈的 Bizart啊。。。我直接设定 intensity = 0.8 算出来的 丢包率是 0.9 从0.1开始，现在就接近于0了。。。什么世道
 
-    sim_result_f = "sim_result_sim={0}_N={1}_threshold={2}_l={3}_m={4}.csv".format(SIM_NB, N, THRESLD, l, m)
+    sim_result_f = "sim_result_simd={0}_N={1}_threshold={2}_l={3}_m={4}.csv".format(SIM_DURATION, N, THRESLD, l, m)
 
     with open(sim_result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')

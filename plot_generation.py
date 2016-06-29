@@ -9,14 +9,18 @@ import numpy as np
 import matplotlib.ticker as ticker
 
 
-DATA_FOLDED = 'data_files'
+DATA_FOLDED = os.path.join('.')
+# DATA_FOLDED = os.path.join('data_files', '20160627')
 plt.figure(1)
+plt.subplot(1, 2, 1)
 # The case for threshold 1.0
+sim_result_f_no = os.path.join(DATA_FOLDED, "sim_result_sim=1_N=500_threshold=1.0_l=1_m=1.csv")
+ana_result_f_no = os.path.join(DATA_FOLDED, "analytical_result_threshold=1.0_l=1_m=1.csv")
+
+DATA_FOLDED = os.path.join('data_files', '20160627')
 sim_result_f_with = os.path.join(DATA_FOLDED, 'sim_result_sim=1_N=500_threshold=1.0_l=2_m=1.csv')
 ana_result_f_with = os.path.join(DATA_FOLDED, "analytical_result_threshold=1.0_l=2_m=1.csv")
 
-sim_result_f_no = os.path.join(DATA_FOLDED, "sim_result_sim=1_N=500_threshold=1.0_l=1_m=1.csv")
-ana_result_f_no = os.path.join(DATA_FOLDED, "analytical_result_threshold=1.0_l=1_m=1.csv")
 
 with open(ana_result_f_with, 'r') as ana_with_f_handler, \
         open(sim_result_f_with, 'r') as sim_with_f_handler, \
@@ -24,8 +28,10 @@ with open(ana_result_f_with, 'r') as ana_with_f_handler, \
         open(sim_result_f_no, 'r') as sim_no_f_handler:
     ana_with_csv = list(csv.reader(ana_with_f_handler))
     sim_with_csv = list(csv.reader(sim_with_f_handler))
+
     ana_no_csv = list(csv.reader(ana_no_f_handler))
     sim_no_csv = list(csv.reader(sim_no_f_handler))
+    print len(sim_no_csv)
 
     ana_with_intensity = [float(element[-1]) for element in ana_with_csv]
     ana_with_plr = [float(element[-2]) for element in ana_with_csv]
@@ -51,11 +57,16 @@ with open(ana_result_f_with, 'r') as ana_with_f_handler, \
     plt.axis([0, 1.05, 0, 1.05])
     plt.grid()
 
+plt.subplot(1, 2, 2)
+plt.semilogy(sim_no_intensity, sim_no_plr, 'g^')
+plt.semilogy(ana_no_intensity, ana_no_plr, 'b-')
+
 
 ############################################################################################
 # The case threshould: -3dB
+DATA_FOLDED = os.path.join('data_files', '20160627')
 plt.figure(2)
-
+plt.subplot(1, 2, 1)
 sim_result_f_with = os.path.join(DATA_FOLDED, "sim_result_sim=1_N=500_threshold=0.5_l=2_m=1.csv")
 ana_result_f_with = os.path.join(DATA_FOLDED, "analytical_result_threshold=0.5_l=2_m=1.csv")
 
@@ -106,13 +117,16 @@ with open(ana_result_f_with, 'r') as ana_with_f_handler, \
     plt.legend(loc='best', numpoints=2)
     plt.axis([0, 2.05, 0, 1.05])
     plt.grid()
+plt.subplot(1, 2, 2)
+plt.semilogy(sim_with_intensity, sim_with_plr, 'g^')
+plt.semilogy(ana_with_intensity, ana_with_plr, 'b-')
 
 # The case 3: threshold: -10dB
 plt.figure(3)
-DATA_FOLDED = 'data_files/20160628'
+DATA_FOLDED = 'data_files/20160627'
 sim_result_f_with = os.path.join(DATA_FOLDED, 'sim_result_sim=1_N=2000_threshold=0.1_l=2_m=1.csv')
 ana_result_f_with = os.path.join(DATA_FOLDED, 'analytical_result_threshold=0.1_l=2_m=1.csv')
-DATA_FOLDED = 'data_files'
+DATA_FOLDED = 'data_files/20160627'
 sim_result_f_no = os.path.join(DATA_FOLDED, "sim_result_sim=1_N=2000_threshold=0.1_l=1_m=1.csv")
 ana_result_f_no = os.path.join(DATA_FOLDED, "analytical_result_threshold=0.1_l=1_m=1.csv")
 

@@ -9,7 +9,7 @@
 "DELTA":        0.0000001,
 "WARM_UP":      1000,
 "SIM_NB":       1,
-"sim_step":     0.05,
+"sim_step":     0.02,
 "N":            500,
-"SIM_DURATION": 5000
+"SIM_DURATION": 20000
 }
