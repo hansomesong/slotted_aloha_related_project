@@ -331,6 +331,7 @@ def do_main(N, alpha_start, alpha_end, sim_step, thresld, l, m, max_trans, warm_
             devices = [Device(i, alpha_start/N, POWER_LEVELS, max_trans) for i in range(N)]
             channel = Channel(devices, max_trans)
             row = run_simulation(channel, thresld, int(time()+os.getpid()*10), warm_up_t, sim_duration,)
+            row.append(alpha_start)
             spamwriter.writerow(row)
             alpha_start += sim_step
 
@@ -338,7 +339,7 @@ def do_main(N, alpha_start, alpha_end, sim_step, thresld, l, m, max_trans, warm_
     print "Simluation by process", os.getpid(), " has been finised with ", float(end-start)/60.0, " minutes."
 
 def mp_do_main(N, alpha_start, alpha_end, sim_step, thresld, l, m, max_trans, warm_up_t, sim_duration):
-    PROCESS_NB = 25
+    PROCESS_NB = 4
     pool = multiprocessing.Pool(PROCESS_NB)
 
     # Populate the task list
