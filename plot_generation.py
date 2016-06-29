@@ -14,7 +14,7 @@ DATA_FOLDED = os.path.join('.')
 plt.figure(1)
 plt.subplot(1, 2, 1)
 # The case for threshold 1.0
-sim_result_f_no = os.path.join(DATA_FOLDED, "sim_result_sim=1_N=500_threshold=1.0_l=1_m=1.csv")
+sim_result_f_no = os.path.join(DATA_FOLDED, "sim_result_simd=5000_N=500_threshold=1.0_l=1_m=1_PID=5.csv")
 ana_result_f_no = os.path.join(DATA_FOLDED, "analytical_result_threshold=1.0_l=1_m=1.csv")
 
 DATA_FOLDED = os.path.join('data_files', '20160627')

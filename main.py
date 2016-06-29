@@ -56,6 +56,7 @@ def run_analytical_simulation(config_f):
 
 
 if __name__ == "__main__":
+    start = int(time())
     # run_analytical_simulation('case_l=1_m=1_threshold=-3dB_N=500.json')
     # # The case of slotted aloha with threshold -3dB, without power increment
     config_f = os.path.join('exp_configs', 'case_l=1_m=1_threshold=0dB_N=500.json')
@@ -107,42 +108,45 @@ if __name__ == "__main__":
 
 
     # 真他妈的 Bizart啊。。。我直接设定 intensity = 0.8 算出来的 丢包率是 0.9 从0.1开始，现在就接近于0了。。。什么世道
+    # Repeat N times
+    for x in range(10, 25):
+        sim_result_f = "sim_result_simd={0}_N={1}_threshold={2}_l={3}_m={4}_PID={5}.csv".format(SIM_DURATION, N, THRESLD, l, m, x)
 
-    sim_result_f = "sim_result_simd={0}_N={1}_threshold={2}_l={3}_m={4}.csv".format(SIM_DURATION, N, THRESLD, l, m)
+        with open(sim_result_f, 'w') as f_handler:
+            spamwriter = csv.writer(f_handler, delimiter=',')
 
-    with open(sim_result_f, 'w') as f_handler:
-        spamwriter = csv.writer(f_handler, delimiter=',')
+            while alpha_start <= alpha_end:
+                result = []
 
-        while alpha_start <= alpha_end:
-            result = []
-
-            pool = multiprocessing.Pool(SIM_NB)
-
-            # Populate the task list
-            tasks =[]
-            for n in range(SIM_NB):
+                # pool = multiprocessing.Pool(SIM_NB)
+                #
+                # Populate the task list
+                # tasks =[]
+                # for n in range(SIM_NB):
                 devices = [Device(i, alpha_start/N, POWER_LEVELS, MAX_TRANS) for i in range(N)]
                 channel = Channel(devices, MAX_TRANS)
-                tasks.append((channel, THRESLD, int(time()+n*100), WARM_UP, SIM_DURATION, ))
+                    # tasks.append((channel, THRESLD, int(time()+n*100), WARM_UP, SIM_DURATION, ))
 
-            # Start all tasks
-            result = [pool.apply_async(run_simulation, t) for t in tasks]
+                # Start all tasks
+                # result = [pool.apply_async(run_simulation, t) for t in tasks]
+                row = run_simulation(channel, THRESLD, int(time()+x*100), WARM_UP, SIM_DURATION)
 
-            # Iterate the final result
-            tmp_array = np.array([prob_vector.get() for prob_vector in result])
-            # for prob_vector in result:
-            #     print prob_vector.get()
+                # Iterate the final result
+                # tmp_array = np.array([prob_vector.get() for prob_vector in result])
+                # for prob_vector in result:
+                #     print prob_vector.get()
 
-            # Calculate the average of all simulations
-            row = [float("{0:.4g}".format(p)) for p in np.mean(np.array(tmp_array), axis=0)]
-            print "result", alpha_start, row
+                # Calculate the average of all simulations
+                # row = [float("{0:.4g}".format(p)) for p in np.mean(np.array(tmp_array), axis=0)]
+                print "result", alpha_start, row
 
-            row.append(alpha_start)
+                row.append(alpha_start)
 
-            spamwriter.writerow(row)
+                spamwriter.writerow(row)
 
-            alpha_start += sim_step
-
+                alpha_start += sim_step
+    end = int(time())
+    print "Execution time: ", float(end-start)/60.0, " minutes."
 
 
 

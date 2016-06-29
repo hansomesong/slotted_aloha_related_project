@@ -11,5 +11,5 @@
 "SIM_NB":       1,
 "sim_step":     0.02,
 "N":            500,
-"SIM_DURATION": 20000
+"SIM_DURATION": 5000
 }
