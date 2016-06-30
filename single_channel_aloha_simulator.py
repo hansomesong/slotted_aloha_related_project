@@ -56,7 +56,7 @@ class Device(object):
         一些不得不重视的陷阱：仔细想来，failed packet 应该是 Device 来处理比较好，确保合法的 packet 才可以发送到 Channel 上去
     """
 
-    def __init__(self, index, proba, POWER_LEVELS, MAX_TRANS):
+    def __init__(self, index, proba, POWER_LEVELS, MAX_TRANS, BACKOFF):
         self.index = index
         self.proba = proba
         self.buffer = []
@@ -66,6 +66,7 @@ class Device(object):
         self.sent_pkts = []
         self.POWER_LEVELS = POWER_LEVELS
         self.MAX_TRANS = MAX_TRANS
+        self.BACKOFF = BACKOFF
 
 
     def __str__(self):
@@ -137,8 +138,8 @@ class Device(object):
                 # Decrement one for all collided packets
                 for element in self.buffer:
                     element.timer -= 1
-                if len(self.packets) != 0:
-                    pkt = self.packets.pop()
+                # if len(self.packets) != 0:
+                #     pkt = self.packets.pop()
                 # else:
                     # case neither collided nor fresh packets are available
                     # print "\t\tDo nothing in transmit method of device ", self.index
@@ -173,7 +174,9 @@ class Device(object):
                     packet.device_id,
                     packet.tr_id+1,
                     self.POWER_LEVELS[packet.tr_id],
-                    np.random.randint(1, 32))
+                    # np.random.randint(1, self.BACKOFF))
+                    int(np.random.exponential(scale=self.BACKOFF))
+            )
             self.buffer.append(p)
 
             # print "SLOT {0}:\t\t{1} is transmitted but backlogged, scheduled to make the {2} transmission in SLOT {3}.".format(round_index, packet, p.tr_id, round_index+p.timer+1)

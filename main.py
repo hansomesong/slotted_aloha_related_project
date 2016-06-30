@@ -45,6 +45,7 @@ def run_analytical_simulation(config_f):
     SIM_NB = json_config['SIM_NB']
 
 
+
     sim_result_f = os.path.join("data_files", "sim_result_sim_{0}_N_{1}_threshold_{2}_l={3}_m={4}.csv".format(SIM_NB, N, THRESLD, l, m))
     sim_result = iteration(alpha_start, alpha_end, sim_step, THRESLD, N, POWER_LEVELS, MAX_TRANS, SIM_NB, WARM_UP, SIM_DURATION)
     with open(sim_result_f, 'w') as f_handler:
@@ -95,6 +96,7 @@ if __name__ == "__main__":
     sim_step = json_config['sim_step']
     WARM_UP = json_config['WARM_UP']
     SIM_NB = json_config['SIM_NB']
+    BACKOFF = json_config["BACKOFF"]
 
 
     # sim_result_f = "sim_result_sim_{0}_N_{1}_threshold_{2}_l={3}_m={4}.csv".format(SIM_NB, N, THRESLD, l, m)
@@ -108,7 +110,7 @@ if __name__ == "__main__":
 
     # 真他妈的 Bizart啊。。。我直接设定 intensity = 0.8 算出来的 丢包率是 0.9 从0.1开始，现在就接近于0了。。。什么世道
 
-    sim_result_f = "sim_result_simd={0}_N={1}_threshold={2}_l={3}_m={4}.csv".format(SIM_DURATION, N, THRESLD, l, m)
+    sim_result_f = "dataset_expon_backoff/sim_result_simd={0}_N={1}_threshold={2}_l={3}_m={4}.csv".format(SIM_DURATION, N, THRESLD, l, m)
 
     with open(sim_result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')
@@ -121,7 +123,7 @@ if __name__ == "__main__":
             # Populate the task list
             tasks =[]
             for n in range(SIM_NB):
-                devices = [Device(i, alpha_start/N, POWER_LEVELS, MAX_TRANS) for i in range(N)]
+                devices = [Device(i, alpha_start/N, POWER_LEVELS, MAX_TRANS, BACKOFF) for i in range(N)]
                 channel = Channel(devices, MAX_TRANS)
                 tasks.append((channel, THRESLD, int(time()+n*100), WARM_UP, SIM_DURATION, ))
 
