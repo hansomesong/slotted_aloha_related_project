@@ -26,13 +26,13 @@ def run_analytical_simulation(config_f):
     P = np.zeros(MAX_TRANS)
     P[0] = 1
 
-    ana_result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, THRESLD, ana_step)
-    ana_result_f = os.path.join("data_files", "analytical_result_threshold_{0}_l={1}_m={2}.csv".format(THRESLD, l, m))
-    with open(ana_result_f, 'w') as f_handler:
-        spamwriter = csv.writer(f_handler, delimiter=',')
-        for n, vector_p in enumerate(ana_result, 1):
-            print n, vector_p
-            spamwriter.writerow(vector_p)
+    # ana_result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, THRESLD, ana_step)
+    # ana_result_f = os.path.join("data_files", "analytical_result_threshold_{0}_l={1}_m={2}.csv".format(THRESLD, l, m))
+    # with open(ana_result_f, 'w') as f_handler:
+    #     spamwriter = csv.writer(f_handler, delimiter=',')
+    #     for n, vector_p in enumerate(ana_result, 1):
+    #         print n, vector_p
+    #         spamwriter.writerow(vector_p)
 
 
     ## The section for running simulation

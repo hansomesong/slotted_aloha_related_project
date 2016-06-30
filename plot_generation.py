@@ -14,7 +14,8 @@ DATA_FOLDED = os.path.join('.')
 plt.figure(1)
 plt.subplot(1, 2, 1)
 # The case for threshold 1.0
-sim_result_f_no = os.path.join(DATA_FOLDED, "sim_result_simd=5000_N=500_threshold=1.0_l=1_m=1_PID=868.csv")
+sim_result_f_no = os.path.join(DATA_FOLDED, "sim_result_simd=100000_N=500_threshold=1.0_l=1_m=1_PID=6075.csv")
+DATA_FOLDED = os.path.join('.')
 ana_result_f_no = os.path.join(DATA_FOLDED, "analytical_result_threshold=1.0_l=1_m=1.csv")
 
 DATA_FOLDED = os.path.join('data_files', '20160627')
@@ -58,6 +59,9 @@ with open(ana_result_f_with, 'r') as ana_with_f_handler, \
     plt.grid()
 
 plt.subplot(1, 2, 2)
+plt.grid()
+plt.xlabel("The fresh packe arrival intensity")
+plt.ylabel("The packet loss rate")
 plt.semilogy(sim_no_intensity, sim_no_plr, 'g^')
 plt.semilogy(ana_no_intensity, ana_no_plr, 'b-')
 

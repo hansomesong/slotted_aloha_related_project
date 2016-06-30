@@ -162,26 +162,17 @@ class Device(object):
             其实本质上来讲，backoff 应该算是一个 packet generator 方法。即：根据 input 给定的 packet 的生成一个新的packet，
             只放在重传的 Buffer 里面去
         '''
-        # Note that if packet transmission index reaches to 5, abandon this packet
-        # backoff does not taken into accout the packet with transmission index with MAX_TRANS
-        if packet.tr_id != self.MAX_TRANS:
-            # 如果需要被 backoff 的 packet 还没有达到最大传输数目，则创建一个新的packet放到buffer中去
-            # In fact, the backoff window should be a CONSTANT system parameter
-            p = Packet(
-                    packet.pkt_id,
-                    packet.device_id,
-                    packet.tr_id+1,
-                    self.POWER_LEVELS[packet.tr_id],
-                    np.random.randint(1, 32))
-            self.buffer.append(p)
+        # 执行 Backoff 的packet一定还没有到达传输上限，因为达到已经被 dropped了 不会被执行 backoff
+        p = Packet(
+                packet.pkt_id,
+                packet.device_id,
+                packet.tr_id+1,
+                self.POWER_LEVELS[packet.tr_id],
+                np.random.randint(1, 32)
+        )
+        self.buffer.append(p)
 
-            # print "SLOT {0}:\t\t{1} is transmitted but backlogged, scheduled to make the {2} transmission in SLOT {3}.".format(round_index, packet, p.tr_id, round_index+p.timer+1)
-
-        else:
-            # 需要被 backoff 的 packet 已经达到了最大重传次数，直接放弃
-            # 放入相应的 list 之中去, 无需其他操作
-            self.fail_pkts.append((round_index, packet))
-            # print "SLOT {0}:\t\t{1} is transmitted but failed and dropped.".format(round_index, packet)
+        # print "SLOT {0}:\t\t{1} is transmitted but backlogged, scheduled to make the {2} transmission in SLOT {3}.".format(round_index, packet, p.tr_id, round_index+p.timer+1)
 
     def ack(self, pkt, round_index):
         '''
@@ -202,8 +193,10 @@ class Channel(object):
         self.history = []
         # A variable to store all succesfully sent packets.
         self.succ_pkts =[]
+        self.succ_nb =0
         # Store all the dropped packets
         self.fail_pkts = []
+        self.fail_nb =0
         self.MAX_TRANS = MAX_TRANS
 
 
@@ -219,8 +212,12 @@ class Channel(object):
             total_p = sum([e.power for e in rec_pkts])
             for pkt in rec_pkts:
                 if total_p <= pkt.power/threld:
-                    self.devices[pkt.device_id].ack(pkt, round_index)
+                    self.succ_nb += 1
+                elif pkt.tr_id == self.MAX_TRANS:
+                    self.fail_nb += 1
                 else:
+                    # 因此，被执行backoff的packet一定是传输次数还没有到达上限的packet
+                    # 因此，device 里面的 backoff不需要再做check了
                     self.devices[pkt.device_id].backoff(pkt, round_index)
 
     def get_sent_pkts(self, warm_up_t):
@@ -271,7 +268,7 @@ class Channel(object):
 
         # result2 = [len([pkt for pkt in all if pkt.tr_id >= i+1])*1.0/len(all) for i in range(MAX_TRANS)]
 
-        p_loss = len(fail)*1.0/(len(fail)+len(succ))
+        p_loss = self.fail_nb*1.0/(self.fail_nb+self.succ_pkts)
 
         result1.append(p_loss)
 

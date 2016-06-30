@@ -4,12 +4,12 @@
 "m":            1,
 "THRESLD":      1.0,
 "alpha_start":  0.1,
-"alpha_end":    1.05,
+"alpha_end":    0.4,
 "ana_step":     0.005,
 "DELTA":        0.0000001,
 "WARM_UP":      1000,
 "SIM_NB":       1,
 "sim_step":     0.02,
 "N":            500,
-"SIM_DURATION": 5000
+"SIM_DURATION": 100000
 }
