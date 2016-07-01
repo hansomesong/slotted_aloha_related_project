@@ -59,7 +59,7 @@ def run_analytical_simulation(config_f):
 if __name__ == "__main__":
     # run_analytical_simulation('case_l=1_m=1_threshold=-3dB_N=500.json')
     # # The case of slotted aloha with threshold -3dB, without power increment
-    config_f = os.path.join('exp_configs', 'case_l=1_m=1_threshold=0dB_N=500.json')
+    config_f = os.path.join('exp_configs', 'case_l=2_m=1_threshold=-3dB_N=500.json')
     print "Now do simulation with configuration file: ", config_f
     with open(config_f) as json_file:
         json_config = json.load(json_file)
@@ -98,19 +98,9 @@ if __name__ == "__main__":
     SIM_NB = json_config['SIM_NB']
     BACKOFF = json_config["BACKOFF"]
 
-
-    # sim_result_f = "sim_result_sim_{0}_N_{1}_threshold_{2}_l={3}_m={4}.csv".format(SIM_NB, N, THRESLD, l, m)
-    # sim_result = iteration(alpha_start, alpha_end, sim_step, THRESLD, N, POWER_LEVELS, MAX_TRANS, SIM_NB, WARM_UP, SIM_DURATION)
-    # with open(sim_result_f, 'w') as f_handler:
-    #     spamwriter = csv.writer(f_handler, delimiter=',')
-    #     for n, row in enumerate(sim_result, 1):
-    #         print n, row
-    #         spamwriter.writerow(row)
-
-
     # 真他妈的 Bizart啊。。。我直接设定 intensity = 0.8 算出来的 丢包率是 0.9 从0.1开始，现在就接近于0了。。。什么世道
 
-    sim_result_f = "dataset_expon_backoff/sim_result_simd={0}_N={1}_threshold={2}_l={3}_m={4}.csv".format(SIM_DURATION, N, THRESLD, l, m)
+    sim_result_f = "dataset_expon_backoff/sim_simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}.csv".format(SIM_DURATION, N, THRESLD, l, m, BACKOFF, sim_step)
 
     with open(sim_result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')

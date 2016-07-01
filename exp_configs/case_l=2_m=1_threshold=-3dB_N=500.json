@@ -3,13 +3,14 @@
 "l":            2,
 "m":            1,
 "THRESLD":      0.5,
-"alpha_start":  0.1,
+"alpha_start":  0.7,
 "alpha_end":    2.00,
 "ana_step":     0.005,
 "DELTA":        0.0000001,
 "WARM_UP":      1000,
 "SIM_NB":       1,
+"BACKOFF":      36,
 "sim_step":     0.05,
 "N":            500,
-"SIM_DURATION": 5000
+"SIM_DURATION": 50000
 }

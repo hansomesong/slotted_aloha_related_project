@@ -8,9 +8,9 @@
 "ana_step":     0.005,
 "DELTA":        0.0000001,
 "WARM_UP":      100,
-"BACKOFF":      200,
+"BACKOFF":      36,
 "SIM_NB":       1,
 "sim_step":     0.02,
-"N":            200,
-"SIM_DURATION": 50000
+"N":            500,
+"SIM_DURATION": 20000
 }
