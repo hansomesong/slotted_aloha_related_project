@@ -100,7 +100,9 @@ if __name__ == "__main__":
 
     # 真他妈的 Bizart啊。。。我直接设定 intensity = 0.8 算出来的 丢包率是 0.9 从0.1开始，现在就接近于0了。。。什么世道
 
-    sim_result_f = "dataset_expon_backoff/sim_simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}.csv".format(SIM_DURATION, N, THRESLD, l, m, BACKOFF, sim_step)
+    sim_result_f = \
+        "dataset_expon_backoff/sim_simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}_simstep={7}.csv"\
+            .format(SIM_DURATION, N, THRESLD, l, m, BACKOFF, alpha_start, sim_step)
 
     with open(sim_result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')
