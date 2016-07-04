@@ -29,7 +29,7 @@ def listener(sim_result_f, q):
 # information into a QUEUE data structure, which will be served by listener process.
 def worker(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t, q):
     csv_row = []
-    sim_result = run_simulation2(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t)
+    sim_result = run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t)
     csv_row.extend(sim_result[2])
     csv_row.append(alpha)
     q.put(csv_row)
@@ -75,7 +75,6 @@ def run_simulation2(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_d
             for device_id, x in enumerate(sim_history[slot]):
                 if total_p > l**(x-1)*m**(max_trans-x) / threshold:
                     # the case of transmission failure
-                    backlog[device_id] = 1
                     if x != 0 and x != max_trans:
                         # max_trans has not been reached. Execute backoff procedure
                         # The new slot index is the sum of current one and backoff length
@@ -88,12 +87,12 @@ def run_simulation2(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_d
                             sim_history[(new_slot, device_id)] = x+1
                         # Do not forget to 清零 for this slot.
                         sim_history[(slot, device_id)] = 0
+                        backlog[device_id] = 1
+
                     elif x == max_trans:
                         # The case where max_trans has been reached. Failure of this packet transmission
                         sim_history[(slot, device_id)] = max_trans + 1
-                else:
-                    # the case of successful transmission. Do not forget to flag for this device as non-backlogged.
-                    backlog[device_id] = 0
+                        backlog[device_id] = 0
 
     statistics = np.bincount(
         sim_history[warm_t:sim_duration, ::].reshape(1, device_nb*(sim_duration-warm_t))[0]
@@ -158,7 +157,7 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
 
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
-    print "Execution time ", time_elapsed, "for this task ", alpha, "Result:", statistics, vector_p
+    print "Execution time", time_elapsed, "for this task", alpha, "Result:", statistics, vector_p
     return alpha, statistics, vector_p
 
 def main(config_f):
@@ -181,7 +180,7 @@ def main(config_f):
     ALPHA_INTERVAL = [ALPHA_START + i*SIM_STEP for i in range(int((ALPHA_END-ALPHA_START)/SIM_STEP)+1)]
 
 
-    n = 5
+    n = 15
     if len(ALPHA_INTERVAL) == 1:
         ALPHA_INTERVAL = [ALPHA_START for i in range(n)]
 
@@ -191,7 +190,7 @@ def main(config_f):
 
     manager = mp.Manager()
     q = manager.Queue()
-    pool = mp.Pool(mp.cpu_count()+2)
+    pool = mp.Pool(mp.cpu_count()+3)
 
     f_handler = open(sim_result_f, 'w')
     #put listener to work first
@@ -225,71 +224,4 @@ if __name__ == "__main__":
     time_elapsed = float(end_t-start_t)/60.0
 
     print "Total Execution time: ", time_elapsed
-    # First read
 
-
-# start = int(time())
-# print history.shape
-# for slot in range(history.shape[0]-1):
-#     # First judge which transmission is successful, which one should be backlogged.
-#     total_p = sum([L**(k-1)*M**(MAX_TRANS-k) for k in history[slot] if k != 0])
-#     if total_p != 0:
-#     # that means the current slot is not idle
-#         for devic_id, x in enumerate(history[slot]):
-#             if total_p > L**(x-1)*M**(MAX_TRANS-x) / THERSHOLD:
-#                 if x != 0 and x != MAX_TRANS:
-#                     # MAX_TRANS has not been reached. Execute backoff procedure
-#                     # The new slot index is the sum of current one and backoff length
-#                     new_slot = int(np.random.exponential(scale=BACKOFF)) + 1 + slot
-#                     # print new_slot
-#                     if new_slot <= SIM_DURATION-1:
-#                     # Take care that the selected new slot should not be out of range.
-#                     # Also we should note that selected new slot has not yet scheduled for another retransmission
-#                     # transmission trial should be incremented by 1
-#                         history[(new_slot, devic_id)] = x+1
-#                     # Do not forget to 清零 for this slot.
-#                     history[(slot, devic_id)] = 0
-#                 elif x == MAX_TRANS:
-#                     # The case where MAX_TRANS has been reached. Failure of this packet transmission
-#                     history[(slot, devic_id)] = MAX_TRANS + 1
-#
-#     # Second, generate packet and schedule the transmission in the next slot for each device
-#     new_pkts = [bernoulli.rvs(INTENSITY/NB_DEVICE) for i in range(NB_DEVICE)]
-#     # print new_pkts
-#     history[(slot+1, devic_id)] = [new_pkts[devic_id] if k == 0 else k for devic_id, k in enumerate(history[slot+1])]
-#     for devic_id, k in enumerate(history[slot+1]):
-#         if k == 0:
-#             history[(slot+1, devic_id)] = new_pkts[devic_id]
-#
-#
-# partial_history = history[WARM_UP:SIM_DURATION, ::]
-#
-# statistics = np.bincount(partial_history.reshape(1, NB_DEVICE*SIM_DURATION)[0])[1:]
-# vector_p = [sum(statistics[i:])*1.0/sum(statistics) for i in range(len(statistics))]
-# print statistics, vector_p
-# # print history
-# end = int(time())
-#
-# time_elapsed = float(end-start)/60.0
-
-# print "Execution time: ", time_elapsed
-
-
-    # with open(config_f) as json_file:
-    #     json_config = json.load(json_file)
-    #
-    # SIM_DURATION = json_config['SIM_DURATION']
-    #
-    # DEVICE_NB = json_config['N']
-    # SIM_STEP = json_config['sim_step']
-    # WARM_UP = json_config['WARM_UP']
-    # BACKOFF = json_config["BACKOFF"]
-    # SIM_DURATION = json_config['SIM_DURATION']
-    # THERSHOLD = json_config['THRESLD']
-    # L = json_config['l']
-    # M = json_config['m']
-    # MAX_TRANS = json_config['MAX_TRANS']
-    # ALPHA_1 = 0.25
-    # WARM_T = json_config['WARM_UP']
-    #
-    # print run_simulation(ALPHA_1, MAX_TRANS, DEVICE_NB, THERSHOLD, L, M, BACKOFF, SIM_DURATION, WARM_T)
