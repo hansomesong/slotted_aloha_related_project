@@ -116,7 +116,7 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
         The packet loss rate is systematically greater than that of analytical result.
     '''
     start_t = int(time())
-    seed = hash(start_t + os.getpid()*13)
+    seed = hash((start_t + os.getpid()*13)*0.0000001)
     np.random.seed(seed)
     sim_history = np.zeros((sim_duration, device_nb), dtype=np.int)
     for slot in range(sim_duration-1):
@@ -133,13 +133,17 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
                     if x != 0 and x != max_trans:
                         # max_trans has not been reached. Execute backoff procedure
                         # The new slot index is the sum of current one and backoff length
-                        new_slot = int(np.random.exponential(scale=backoff)) + 1 + slot
-                        # print new_slot
-                        if new_slot <= sim_duration-1:
-                        # Take care that the selected new slot should not be out of range.
-                        # Also we should note that selected new slot has not yet scheduled for another retransmission
-                        # transmission trial should be incremented by 1
-                            sim_history[(new_slot, device_id)] = x+1
+                        while 1:
+                            new_slot = int(np.random.exponential(scale=backoff)) + 1 + slot
+                            if new_slot <= sim_duration-1:
+                                if sim_history[(new_slot, device_id)] == 0:
+                                # Take care that the selected new slot should not be out of range.
+                                # Also we should note that selected new slot has not yet scheduled for another retransmission
+                                # transmission trial should be incremented by 1
+                                    sim_history[(new_slot, device_id)] = x+1
+                                    break
+                            else:
+                                break
                         # Do not forget to 清零 for this slot.
                         sim_history[(slot, device_id)] = 0
                     elif x == max_trans:
@@ -157,7 +161,7 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
 
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
-    print "Execution time", time_elapsed, "for this task", alpha, "Result:", statistics, vector_p
+    print "Execution time", time_elapsed, "for this task", alpha, "with seed ", seed, "Result:", statistics, vector_p
     return alpha, statistics, vector_p
 
 def main(config_f):
@@ -180,7 +184,7 @@ def main(config_f):
     ALPHA_INTERVAL = [ALPHA_START + i*SIM_STEP for i in range(int((ALPHA_END-ALPHA_START)/SIM_STEP)+1)]
 
 
-    n = 15
+    n = 40
     if len(ALPHA_INTERVAL) == 1:
         ALPHA_INTERVAL = [ALPHA_START for i in range(n)]
 
