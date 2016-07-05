@@ -59,7 +59,7 @@ def run_analytical_simulation(config_f):
 if __name__ == "__main__":
     # run_analytical_simulation('case_l=1_m=1_threshold=-3dB_N=500.json')
     # # The case of slotted aloha with threshold -3dB, without power increment
-    config_f = os.path.join('exp_configs', 'case_l=2_m=1_threshold=-3dB_N=500.json')
+    config_f = os.path.join('sim_configs', 'case_K=5_l=2_m=1_threshold=3dB.json')
     print "Now do simulation with configuration file: ", config_f
     with open(config_f) as json_file:
         json_config = json.load(json_file)
@@ -79,13 +79,13 @@ if __name__ == "__main__":
     P = np.zeros(MAX_TRANS)
     P[0] = 1
 
-    ana_result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, THRESLD, ana_step)
-    ana_result_f = "analytical_result_threshold={0}_l={1}_m={2}.csv".format(THRESLD, l, m)
-    with open(ana_result_f, 'w') as f_handler:
-        spamwriter = csv.writer(f_handler, delimiter=',')
-        for n, vector_p in enumerate(ana_result, 1):
-            print n, vector_p
-            spamwriter.writerow(vector_p)
+    # ana_result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, THRESLD, ana_step)
+    # ana_result_f = "analytical_result_threshold={0}_l={1}_m={2}.csv".format(THRESLD, l, m)
+    # with open(ana_result_f, 'w') as f_handler:
+    #     spamwriter = csv.writer(f_handler, delimiter=',')
+    #     for n, vector_p in enumerate(ana_result, 1):
+    #         print n, vector_p
+    #         spamwriter.writerow(vector_p)
 
 
     ## The section for running simulation
@@ -95,13 +95,12 @@ if __name__ == "__main__":
     N = json_config['N']
     sim_step = json_config['sim_step']
     WARM_UP = json_config['WARM_UP']
-    SIM_NB = json_config['SIM_NB']
     BACKOFF = json_config["BACKOFF"]
 
     # 真他妈的 Bizart啊。。。我直接设定 intensity = 0.8 算出来的 丢包率是 0.9 从0.1开始，现在就接近于0了。。。什么世道
 
     sim_result_f = \
-        "dataset_expon_backoff/sim_simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}_simstep={7}.csv"\
+        "logs/simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}_simstep={7}.csv"\
             .format(SIM_DURATION, N, THRESLD, l, m, BACKOFF, alpha_start, sim_step)
 
     with open(sim_result_f, 'w') as f_handler:
@@ -110,11 +109,11 @@ if __name__ == "__main__":
         while alpha_start <= alpha_end:
             result = []
 
-            pool = multiprocessing.Pool(SIM_NB)
+            pool = multiprocessing.Pool(1)
 
             # Populate the task list
             tasks =[]
-            for n in range(SIM_NB):
+            for n in range(1):
                 devices = [Device(i, alpha_start/N, POWER_LEVELS, MAX_TRANS, BACKOFF) for i in range(N)]
                 channel = Channel(devices, MAX_TRANS)
                 tasks.append((channel, THRESLD, int(time()+n*100), WARM_UP, SIM_DURATION, ))

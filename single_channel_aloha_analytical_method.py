@@ -34,6 +34,7 @@ def cul_power_chf2cdf(N, P, alpha, l, m):
 def solve_fxp(P, delta, alpha, l, m, threld):
     '''
         @P          : start probability vector
+        @threld     : the SINR threshold, in unit of dB
     '''
     # i is the iteration number
     i = 0
@@ -41,9 +42,9 @@ def solve_fxp(P, delta, alpha, l, m, threld):
     # The difference between two consecutive iterations. The defaut value is a large number.
     # When ecart is less than a value, the iteration will stop
     ecart = 100
-
+    threld = 10**(0.1*threld)
     K = P.size
-    M = [np.floor(l**k*m**(K-1-k)/threld) -l**k*m**(K-1-k) for k in range(K-1)]
+    M = [np.floor(l**k*m**(K-1-k)/threld) for k in range(K-1)]
 
     tmp = np.copy(P)
     # print "For intensity:", alpha
@@ -61,7 +62,7 @@ def solve_fxp(P, delta, alpha, l, m, threld):
         P = np.copy(tmp)
         i += 1
     # Note that np.floor(l**(K-1)/threld-M[-1])
-    p_loss = P[-1]*(1-cul_power_chf2cdf(np.floor(l**(K-1)/threld -l**(K-1)), P, alpha, l, m))
+    p_loss = P[-1]*(1-cul_power_chf2cdf(np.floor(l**(K-1)/threld), P, alpha, l, m))
     # p_loss = (1-np.exp(-sum(P)*alpha) - sum(P)*alpha*np.exp(-sum(P)*alpha))**MAX_TRANS
     # p_loss = (1-np.exp(-sum(P)*alpha))**MAX_TRANS
     # print "alpha", alpha, "P[-1]", P[-1], "\t\tFailed Proba", 1-cul_power_chf2cdf(np.floor(l**(K-1)/threld), P, alpha, l, m), "proba_loss", p_loss
@@ -85,15 +86,15 @@ if __name__ == "__main__":
 
     np.set_printoptions(precision=4)
     MAX_TRANS = 5
-    alpha_start = 0.1
+    alpha_start = 0.2
     # l, m = 2, 1
     l, m = 1, 1
     P = np.zeros(MAX_TRANS)
     P[0] = 1
     DELTA = 0.0000001
     THRESLD = 0.5
-    alpha_end =2.05
-    step = 0.05
+    alpha_end =1.02
+    step = 0.005
     print [cul_power_chf2cdf(n, P, alpha_start, l, m) for n in range(50)]
     # print solve_fxp(P, DELTA, alpha, l, m, THRESLD)
 

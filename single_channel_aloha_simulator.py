@@ -218,14 +218,21 @@ class Channel(object):
         # 将实验某 round 期间受到的 pkts 存储在一个list中
         self.history[round_index] = rec_pkts
 
-        if len(rec_pkts) != 0:  # namely  len(rec_pkts) >= 1
+        threld = 10**(0.1*threld)
+
+        if len(rec_pkts) > 1:  # namely  len(rec_pkts) >= 1
         # 如果 cumulative interference 以后不包含本身的话，要把1 还有 >1的情况分开讨论
             total_p = sum([e.power for e in rec_pkts])
             for pkt in rec_pkts:
-                if total_p <= pkt.power/threld:
+                if threld <= pkt.power/(total_p - pkt.power):
                     self.devices[pkt.device_id].ack(pkt, round_index)
                 else:
                     self.devices[pkt.device_id].backoff(pkt, round_index)
+
+        elif len(rec_pkts) == 1:  # namely  len(rec_pkts) >= 1
+            pkt = rec_pkts[0]
+            self.devices[pkt.device_id].ack(pkt, round_index)
+
 
     def get_sent_pkts(self, warm_up_t):
         result = []

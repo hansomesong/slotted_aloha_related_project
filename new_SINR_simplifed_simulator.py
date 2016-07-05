@@ -91,6 +91,10 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
     statistics = np.bincount(
         sim_history[warm_t:sim_duration, ::].reshape(1, device_nb*(sim_duration-warm_t))[0]
     )[1:]
+
+    # It is possible that no 6 is present in list statistics. In this case, add a 0 at the end
+    if len(statistics) != max_trans + 1:
+        statistics.append(0)
     vector_p = [sum(statistics[i:])*1.0/sum(statistics) for i in range(len(statistics))]
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
