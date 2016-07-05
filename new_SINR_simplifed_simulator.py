@@ -95,7 +95,7 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
 
-    print "Execution time", time_elapsed, "for this task", alpha, "with seed ", seed, "Result:", statistics, vector_p
+    print "Execution time", int(time_elapsed), "for this task", alpha, "with seed ", seed, "Result:", statistics, vector_p
     return alpha, statistics, vector_p
 
 def main(config_f, logs_directory):
@@ -158,7 +158,11 @@ if __name__ == "__main__":
 
     start_t = int(time())
     config_f = os.path.join('sim_configs', 'case_K=5_l=1_m=1_threshold=3dB.json')
+    # The simulation result will be logged into files of type CSV, in folder logs.
+    # First check the existence of this folder and creat it if necessary.
     logs_directory = 'logs'
+    if not os.path.exists(logs_directory):
+        os.makedirs(logs_directory)
     print "Now do simulation with configuration file: ", config_f
 
     main(config_f, logs_directory)
