@@ -2,15 +2,14 @@
 "MAX_TRANS" :   5,
 "l":            1,
 "m":            1,
-"THRESLD":      1.0,
-"alpha_start":  0.34,
-"alpha_end":    0.34,
+"THRESLD":      3.0,
+"alpha_start":  0.2,
+"alpha_end":    0.2,
 "ana_step":     0.005,
 "DELTA":        0.0000001,
 "WARM_UP":      100,
-"BACKOFF":      200,
-"SIM_NB":       1,
+"BACKOFF":      150,
 "sim_step":     0.02,
-"N":            250,
-"SIM_DURATION": 20000
+"N":            200,
+"SIM_DURATION": 40000
 }
