@@ -161,7 +161,7 @@ def main(config_f, logs_directory):
 if __name__ == "__main__":
 
     start_t = int(time())
-    config_f = os.path.join('sim_configs', 'case_K=5_l=2_m=1_threshold=-3dB.json')
+    config_f = os.path.join('sim_configs', 'case_K=5_l=1_m=1_threshold=3dB.json')
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     logs_directory = 'logs'
