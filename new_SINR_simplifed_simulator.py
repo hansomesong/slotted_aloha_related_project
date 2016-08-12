@@ -29,14 +29,14 @@ def listener(sim_result_f, q):
 # In our process pool, except the one in charge of writing records into CSV file, all rest processes are used
 # to treat log file stored in a certain directory. Every time a process processes a log file, it store the retrieved
 # information into a QUEUE data structure, which will be served by listener process.
-def worker(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t, q):
+def worker(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing, q):
     csv_row = []
-    sim_result = run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t)
+    sim_result = run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing)
     csv_row.extend(sim_result[2])
     csv_row.append(alpha)
     q.put(csv_row)
 
-def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t):
+def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing):
     '''
         In this method, during the backoff slot, it is possible to generate and transmit new packets.
         Only the packets generated during the slot scheduled for retransmission will be abandoned.
@@ -45,27 +45,45 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
 
         I have ran several simulations for l=1 m=1, threshould=1. For an intensity of 0.28.
         The packet loss rate is systematically greater than that of analytical result.
+
+        ipc_way: referst to imperfect power control way. If set as "DIFF", each retransmission power error may be different.
+        If set as "SAME", each retransmission power error is identical.
     '''
+    # LM = []
+    # if ipc_way == "DIFF":
+    #     LM = [1.0*l**(k)*m**(max_trans-k-1) for k in range(max_trans)]
+    # elif ipc_way == "SAME":
+    #     LM = [(1.0*l/m)**k for k in range(max_trans)]
+    #     IPC_LEVEL = np.random.lognormal(mu_ipc, sigma_shadowing, device_nb)
+    # else:
+    #     print "Wrong configuration for Imperfect power control manner"
+    #     exit()
+    BETA = np.log(10)/10.0
+    LM = [1.0*l**(k)*m**(max_trans-k-1) for k in range(max_trans)]
     start_t = int(time())
     seed = hash((start_t + os.getpid()*13)*0.0000001)
     np.random.seed(seed)
     sim_history = np.zeros((sim_duration, device_nb), dtype=np.int)
-    power_levels = [1.0*l**(x)*m**(max_trans-x-1) for x in range(max_trans)]
     for slot in range(sim_duration-1):
         # First generate new packets.
         # Which device has packets to transmit?
-        # sim_history[slot] = np.array([new_pkts[id] if k == 0 else k for id, k in enumerate(sim_history[slot])])
+        # In the following, k refers to the k th transmision instead of retransmission
         sim_history[slot] = np.array([bernoulli.rvs(alpha/device_nb) if k == 0 else k for k in sim_history[slot]])
+        # With which transmit power they can sue?
+        power_levels = np.array([LM[k-1] if k != 0 else k*1.0 for k in sim_history[slot]])
+        fadings = np.random.exponential(scale=mu_fading, size=device_nb)
+        shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, device_nb)
+        power_levels *= fadings*shadowings
         nb_pkts = sum([1 for k in sim_history[slot] if k != 0])
         if nb_pkts > 1:
             # that means the current slot is selected by more than one packets.
             # In this case, calculate the SINR to determine which one can be received, which one should be backlogged.
             # For other cases, slot Idle or occupied by one packet, do nothing.
-            total_p = sum([l**(k-1)*m**(max_trans-k) for k in sim_history[slot] if k != 0])
+            total_p = sum(power_levels)
             for device_id, x in enumerate(sim_history[slot]):
                 if x != 0:
                     # The case where device has no packet to transmit, we do not care...
-                    if 10**(0.1*threshold) > power_levels[x-1] / (total_p - power_levels[x-1]):
+                    if 10**(0.1*threshold) > power_levels[device_id] / (total_p - power_levels[device_id]):
                         if x != max_trans:
                             # max_trans has not been reached. Execute backoff procedure
                             # The new slot index is the sum of current one and backoff length
@@ -118,9 +136,10 @@ def main(config_f, logs_directory):
     ALPHA_START = json_config['alpha_start']
     ALPHA_END = json_config['alpha_end']
     WARM_T = json_config['WARM_UP']
-
     ALPHA_INTERVAL = [ALPHA_START + i*SIM_STEP for i in range(int((ALPHA_END-ALPHA_START)/SIM_STEP)+1)]
-
+    MU_FADING = json_config['MU_FADING']
+    MU_SHADOWING = json_config['MU_SHADOWING']
+    SIGMA_SHADOWING = json_config['SIGMA_SHADOWING']
 
     n = 30
     if len(ALPHA_INTERVAL) == 1:
@@ -145,7 +164,10 @@ def main(config_f, logs_directory):
     jobs = []
 
     for alpha in ALPHA_INTERVAL:
-        job = pool.apply_async(worker, (alpha, MAX_TRANS, DEVICE_NB, THERSHOLD, L, M, BACKOFF, SIM_DURATION, WARM_T, q))
+        job = pool.apply_async(
+            worker,
+            (alpha, MAX_TRANS, DEVICE_NB, THERSHOLD, L, M, BACKOFF, SIM_DURATION, WARM_T, MU_FADING, MU_SHADOWING, SIGMA_SHADOWING, q)
+        )
         jobs.append(job)
 
     #collect results from the workers through the pool result queue
