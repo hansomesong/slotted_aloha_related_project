@@ -148,7 +148,7 @@ def main(config_f, logs_directory):
     sim_result_f = os.path.join(
         logs_directory,
         "simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}_end={7}_simstep={8}_{9}.csv".format(
-            SIM_DURATION, DEVICE_NB, THERSHOLD, L, M, BACKOFF, ALPHA_START, ALPHA_END, SIM_STEP, strftime("%H%M%S")
+            SIM_DURATION, DEVICE_NB, THERSHOLD, L, M, BACKOFF, ALPHA_START, ALPHA_END, SIM_STEP, strftime("%Y%m%d%H%M%S")
         )
     )
 
@@ -193,7 +193,7 @@ if __name__ == "__main__":
 
     main(config_f, logs_directory)
     end_t = int(time())
-    time_elapsed = float(end_t-start_t)/60.0
+    time_elapsed = float(end_t - start_t)/60.0
 
     print "Total Execution time: ", time_elapsed
 
