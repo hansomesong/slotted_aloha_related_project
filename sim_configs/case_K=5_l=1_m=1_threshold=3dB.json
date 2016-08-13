@@ -8,11 +8,11 @@
 "ana_step":     0.005,
 "DELTA":        0.0000001,
 "WARM_UP":      100,
-"BACKOFF":      150,
+"BACKOFF":      50,
 "sim_step":     0.02,
 "N":            500,
 "SIM_DURATION": 5000,
 "MU_FADING":    1,
 "MU_SHADOWING": 0,
-"SIGMA_SHADOWING": 1
+"SIGMA_SHADOWING": 1.0
 }

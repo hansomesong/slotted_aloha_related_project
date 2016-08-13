@@ -11,6 +11,7 @@ import csv
 import os
 import json
 from time import strftime
+import glob
 
 # Although many processes could involve in the treatment of log file, we have only one process responsible for
 # writing logfile-related entry(a row in the context of CSV file) into the given CSV file. The advantage of this
@@ -64,6 +65,8 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
     seed = hash((start_t + os.getpid()*13)*0.0000001)
     np.random.seed(seed)
     sim_history = np.zeros((sim_duration, device_nb), dtype=np.int)
+    # shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, device_nb)
+
     for slot in range(sim_duration-1):
         # First generate new packets.
         # Which device has packets to transmit?
@@ -71,9 +74,10 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
         sim_history[slot] = np.array([bernoulli.rvs(alpha/device_nb) if k == 0 else k for k in sim_history[slot]])
         # With which transmit power they can sue?
         power_levels = np.array([LM[k-1] if k != 0 else k*1.0 for k in sim_history[slot]])
-        fadings = np.random.exponential(scale=mu_fading, size=device_nb)
         shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, device_nb)
-        power_levels *= fadings*shadowings
+        # fadings = np.random.exponential(scale=mu_fading, size=device_nb)
+        # power_levels *= fadings*shadowings
+        power_levels *= shadowings
         nb_pkts = sum([1 for k in sim_history[slot] if k != 0])
         if nb_pkts > 1:
             # that means the current slot is selected by more than one packets.
@@ -141,14 +145,14 @@ def main(config_f, logs_directory):
     MU_SHADOWING = json_config['MU_SHADOWING']
     SIGMA_SHADOWING = json_config['SIGMA_SHADOWING']
 
-    n = 30
+    n = 40
     if len(ALPHA_INTERVAL) == 1:
         ALPHA_INTERVAL = [ALPHA_START for i in range(n)]
 
     sim_result_f = os.path.join(
         logs_directory,
-        "simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}_end={7}_simstep={8}_{9}.csv".format(
-            SIM_DURATION, DEVICE_NB, THERSHOLD, L, M, BACKOFF, ALPHA_START, ALPHA_END, SIM_STEP, strftime("%Y%m%d%H%M%S")
+        "simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}_end={7}_simstep={8}_sigmas={9}_{10}.csv".format(
+            SIM_DURATION, DEVICE_NB, THERSHOLD, L, M, BACKOFF, ALPHA_START, ALPHA_END, SIM_STEP, SIGMA_SHADOWING, strftime("%Y%m%d%H%M%S")
         )
     )
 
@@ -183,17 +187,25 @@ def main(config_f, logs_directory):
 if __name__ == "__main__":
 
     start_t = int(time())
-    config_f = os.path.join('sim_configs', 'case_K=5_l=1_m=1_threshold=3dB.json')
-    # The simulation result will be logged into files of type CSV, in folder logs.
-    # First check the existence of this folder and creat it if necessary.
+
+    all_logs = glob.glob(os.path.join('sim_configs', 'shadowing', "*.json"))
     logs_directory = 'logs'
-    if not os.path.exists(logs_directory):
-        os.makedirs(logs_directory)
-    print "Now do simulation with configuration file: ", config_f
+    print all_logs
 
-    main(config_f, logs_directory)
-    end_t = int(time())
-    time_elapsed = float(end_t - start_t)/60.0
+    for config_f in all_logs:
 
-    print "Total Execution time: ", time_elapsed
+        # config_f = os.path.join('sim_configs', 'case_K=5_l=1_m=1_threshold=3dB.json')
+        # The simulation result will be logged into files of type CSV, in folder logs.
+        # First check the existence of this folder and creat it if necessary.
+
+
+        if not os.path.exists(logs_directory):
+            os.makedirs(logs_directory)
+        print "Now do simulation with configuration file: ", config_f
+
+        main(config_f, logs_directory)
+        end_t = int(time())
+        time_elapsed = float(end_t - start_t)/60.0
+
+        print "Total Execution time: ", time_elapsed
 
