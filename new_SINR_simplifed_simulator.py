@@ -12,6 +12,8 @@ import os
 import json
 from time import strftime
 import glob
+import pprint
+from scipy.stats import itemfreq
 
 # Although many processes could involve in the treatment of log file, we have only one process responsible for
 # writing logfile-related entry(a row in the context of CSV file) into the given CSV file. The advantage of this
@@ -72,61 +74,120 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
         # Which device has packets to transmit?
         # In the following, k refers to the k th transmision instead of retransmission
         sim_history[slot] = np.array([bernoulli.rvs(alpha/device_nb) if k == 0 else k for k in sim_history[slot]])
+
         # With which transmit power they can sue?
         power_levels = np.array([LM[k-1] if k != 0 else k*1.0 for k in sim_history[slot]])
         shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, device_nb)
-        # fadings = np.random.exponential(scale=mu_fading, size=device_nb)
-        # power_levels *= fadings*shadowings
-        power_levels *= shadowings
-        nb_pkts = sum([1 for k in sim_history[slot] if k != 0])
-        if nb_pkts > 1:
-            # that means the current slot is selected by more than one packets.
-            # In this case, calculate the SINR to determine which one can be received, which one should be backlogged.
-            # For other cases, slot Idle or occupied by one packet, do nothing.
-            total_p = sum(power_levels)
-            for device_id, x in enumerate(sim_history[slot]):
-                if x != 0:
-                    # The case where device has no packet to transmit, we do not care...
-                    if 10**(0.1*threshold) > power_levels[device_id] / (total_p - power_levels[device_id]):
-                        if x != max_trans:
-                            # max_trans has not been reached. Execute backoff procedure
-                            # The new slot index is the sum of current one and backoff length
-                            while 1:
-                                new_slot = int(np.random.exponential(scale=backoff)) + 1 + slot
-                                if new_slot <= sim_duration-1:
-                                # Take care that the selected new slot should not be out of range.
-                                    # Also we should note that selected new slot has not yet scheduled
-                                    # for another retransmission
-                                    if sim_history[(new_slot, device_id)] == 0:
-                                    # transmission trial should be incremented by 1
-                                        sim_history[(new_slot, device_id)] = x+1
-                                        break
-                                else:
-                                    break
-                            # Do not forget to 清零 for this slot.
-                            sim_history[(slot, device_id)] = 0
-                        elif x == max_trans:
-                            # The case where max_trans has been reached. Failure of this packet transmission
-                            sim_history[(slot, device_id)] = max_trans + 1
+        fadings = np.random.exponential(scale=mu_fading, size=device_nb)
+        power_levels *= fadings*shadowings
+        # print power_levels
+        # power_levels *= shadowings
+        # nb_pkts = sum([1 for k in sim_history[slot] if k != 0])
+
+        # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
+        # (计算实际接收信噪比的思路会不可避免地考虑信道中只有一个传输的情况，导致程序的执行效率低下)
+        total_p = sum(power_levels)
+
+        curr_trans_results = [
+            (10**(0.1*threshold)) * (total_p - power_levels[device_id]) > power_levels[device_id]
+            if k != 0 else False for device_id, k in enumerate(sim_history[slot])
+        ]
+
+        # print curr_trans_results
+        for device_id, curr_trans_result in enumerate(curr_trans_results):
+            # 如果 SINR门限值*干扰值 大于 接收功率，则需要对这个包执行重传操作
+            if curr_trans_result:
+                # 需要知道，这是第几次传输失败了
+                x = sim_history[slot][device_id]
+                if x != max_trans:
+                    # max_trans has not been reached. Execute backoff procedure
+                    # The new slot index is the sum of current one and backoff length
+                    while 1:
+                        new_slot = int(np.random.exponential(scale=backoff)) + 1 + slot
+                        if new_slot <= sim_duration-1:
+                        # Take care that the selected new slot should not be out of range.
+                            # Also we should note that selected new slot has not yet scheduled
+                            # for another retransmission
+                            if sim_history[(new_slot, device_id)] == 0:
+                            # transmission trial should be incremented by 1
+                                sim_history[(new_slot, device_id)] = x+1
+                                break
+                        else:
+                            break
+                    # Do not forget to 清零 for this slot.
+                    sim_history[(slot, device_id)] = 0
+                elif x == max_trans:
+                    # The case where max_trans has been reached. Failure of this packet transmission
+                    sim_history[(slot, device_id)] = max_trans + 1
+
+        # if nb_pkts > 1:
+        #     # that means the current slot is selected by more than one packets.
+        #     # In this case, calculate the SINR to determine which one can be received, which one should be backlogged.
+        #     # For other cases, slot Idle or occupied by one packet, do nothing.
+        #     total_p = sum(power_levels)
+        #     for device_id, x in enumerate(sim_history[slot]):
+        #         if x != 0:
+        #             # The case where device has no packet to transmit, we do not care...
+        #             if 10**(0.1*threshold) > power_levels[device_id] / (total_p - power_levels[device_id]):
+        #                 if x != max_trans:
+        #                     # max_trans has not been reached. Execute backoff procedure
+        #                     # The new slot index is the sum of current one and backoff length
+        #                     while 1:
+        #                         new_slot = int(np.random.exponential(scale=backoff)) + 1 + slot
+        #                         if new_slot <= sim_duration-1:
+        #                         # Take care that the selected new slot should not be out of range.
+        #                             # Also we should note that selected new slot has not yet scheduled
+        #                             # for another retransmission
+        #                             if sim_history[(new_slot, device_id)] == 0:
+        #                             # transmission trial should be incremented by 1
+        #                                 sim_history[(new_slot, device_id)] = x+1
+        #                                 break
+        #                         else:
+        #                             break
+        #                     # Do not forget to 清零 for this slot.
+        #                     sim_history[(slot, device_id)] = 0
+        #                 elif x == max_trans:
+        #                     # The case where max_trans has been reached. Failure of this packet transmission
+        #                     sim_history[(slot, device_id)] = max_trans + 1
 
         # Second, generate packet and schedule the transmission in the next slot for each device
-    statistics = np.bincount(
-        sim_history[warm_t:sim_duration, ::].reshape(1, device_nb*(sim_duration-warm_t))[0]
-    )[1:]
 
-    # It is possible that no 6 is present in list statistics. In this case, add a 0 at the end
-    # if len(statistics) != max_trans + 1:
-    #     statistics.append(0)
-    vector_p = [sum(statistics[i:])*1.0/sum(statistics) for i in range(len(statistics))]
+    # print "History:", sim_history[warm_t:sim_duration, ::].reshape(1, device_nb*(sim_duration-warm_t))
+    # statistics = np.bincount(
+    #     sim_history[warm_t:sim_duration, ::].reshape(1, device_nb*(sim_duration-warm_t))[0]
+    # )[1:]
+
+    # 统计第 i 次传输出现的次数，并据此计算至少需要传输 i 次的频数，如果实验足够长，频数将趋近于概率
+    statistics = itemfreq(sim_history[warm_t:sim_duration, ::].reshape(1, device_nb*(sim_duration-warm_t))[0])[1:]
+
+    vector_p = [0 for i in range(max_trans+1)]
+
+    total_transmission = sum([element[1] for element in statistics])
+
+    for element in statistics:
+        ith_trans = element[0]
+        satisfied_trans = sum([element[1] for element in statistics if element[0] >= ith_trans])
+        vector_p[ith_trans - 1] = satisfied_trans*1.0/total_transmission
+
+
+    # Initialize the return probability vector with 0, the length of this vector is 1+MAX_ALLOWED_RETRANSMISSION_NB
+    # vector_p = [sum(statistics[i:])*1.0/sum(statistics) for i in range(len(statistics))]
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
 
+    pprint.pprint(sim_history)
     print "Execution time", int(time_elapsed), "for this task", alpha, "with seed ", seed, "Result:", statistics, vector_p
-    return alpha, statistics, vector_p
+    return alpha, list(statistics), vector_p
 
-def main(config_f, logs_directory):
+def main(com_config_f, logs_directory):
+    '''
+    :param com_config_f: 公共配置文件，存储着通用的仿真参数。
+    :param logs_directory:
+    :return: nothing
+    '''
     #must use Manager queue here, or will not work
-    with open(config_f) as json_file:
+    # 注意：一定要使用 Manager queue，否则无法工作，至于原因，我不晓得
+    with open(com_config_f) as json_file:
         json_config = json.load(json_file)
 
     SIM_DURATION = json_config['SIM_DURATION']
@@ -145,10 +206,11 @@ def main(config_f, logs_directory):
     MU_SHADOWING = json_config['MU_SHADOWING']
     SIGMA_SHADOWING = json_config['SIGMA_SHADOWING']
 
-    n = 40
+    n = 10
     if len(ALPHA_INTERVAL) == 1:
         ALPHA_INTERVAL = [ALPHA_START for i in range(n)]
 
+    # 将仿真结果存储在 sim_result_f 指向的文件中
     sim_result_f = os.path.join(
         logs_directory,
         "simd={0}_N={1}_threshold={2}_l={3}_m={4}_backoff={5}_start={6}_end={7}_simstep={8}_sigmas={9}_{10}.csv".format(
@@ -188,7 +250,7 @@ if __name__ == "__main__":
 
     start_t = int(time())
 
-    all_logs = glob.glob(os.path.join('sim_configs', 'shadowing', "*.json"))
+    all_logs = glob.glob(os.path.join('sim_configs', 'fading_shadowing', "*.json"))
     logs_directory = 'logs'
     print all_logs
 
