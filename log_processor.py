@@ -20,7 +20,7 @@ all_logs = glob.glob(os.path.join(LOG_DIR, SUB_DIR, CASE_DIR, SUBSUB_DIR, SUBSUB
 all_logs = [
     os.path.join(
         LOG_DIR,
-        "simd=10000_N=300_threshold=0.0dB_l=1_m=2_backoff=36_alpha=0.84_mufading_1.0_mushadowing=0_sigmashadowing=1.0_tmp=20160823011752.csv")
+        "simd=5000_N=400_threshold=0.0dB_l=1_m=1_backoff=2_alpha=0.6_mufading=1.0_mushadowing=0.0_sigmashadowing=1.0_tmp=20160823143844.csv")
 ]
 for csv_file in all_logs:
 

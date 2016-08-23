@@ -52,6 +52,11 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
         If set as "SAME", each retransmission power error is identical.
     '''
     BETA = np.log(10)/10.0
+    # BACK_OFFS = [backoff*np.power(2, i) for i in range(max_trans)]
+    # BACK_OFFS = [4, 15, 30, 50]
+    BACK_OFFS = [backoff for i in range(max_trans)]
+
+    # print "Possible Back off values:", BACK_OFFS
     LM = [1.0*l**(k)*m**(max_trans-k-1) for k in range(max_trans)]
     start_t = int(time())
     seed = hash((start_t + os.getpid()*13)*0.0000001)
@@ -96,7 +101,7 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
                     # max_trans has not been reached. Execute backoff procedure
                     # The new slot index is the sum of current one and backoff length
                     while 1:
-                        new_slot = int(np.random.exponential(scale=backoff)) + 1 + slot
+                        new_slot = int(np.random.exponential(scale=BACK_OFFS[x-1])) + 1 + slot
                         if new_slot <= sim_duration-1:
                         # Take care that the selected new slot should not be out of range.
                             # Also we should note that selected new slot has not yet scheduled
@@ -202,7 +207,7 @@ if __name__ == "__main__":
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)
-    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_l=1_m=1_threshold=-3dB.json')
+    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_l=1_m=1_threshold=0dB.json')
     print "Now do simulation with configuration file: ", sim_config_f
 
     sim_config_dict = {}
@@ -241,8 +246,8 @@ if __name__ == "__main__":
             sim_config_dict["DEVICE_NB"] = DEVICE_NB[1]
             sim_config_dict["SIM_DURATION"] = SIM_DURATION[1]
         else:
-            sim_config_dict["DEVICE_NB"] = DEVICE_NB[2]
-            sim_config_dict["SIM_DURATION"] = SIM_DURATION[2]
+            sim_config_dict["DEVICE_NB"] = DEVICE_NB[-1]
+            sim_config_dict["SIM_DURATION"] = SIM_DURATION[-1]
         print sim_config_dict
         # 将填充好的仿真参数字典传递给 main(), 开启多进程下的仿真
         main(sim_config_dict, logs_directory)
