@@ -28,7 +28,6 @@ def listener(sim_result_f, q):
                 break
             spamwriter.writerow(csv_row)
 
-
 # In our process pool, except the one in charge of writing records into CSV file, all rest processes are used
 # to treat log file stored in a certain directory. Every time a process processes a log file, it store the retrieved
 # information into a QUEUE data structure, which will be served by listener process.
@@ -114,38 +113,6 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
                     # The case where max_trans has been reached. Failure of this packet transmission
                     sim_history[(slot, device_id)] = max_trans + 1
 
-        # if nb_pkts > 1:
-        #     # that means the current slot is selected by more than one packets.
-        #     # In this case, calculate the SINR to determine which one can be received, which one should be backlogged.
-        #     # For other cases, slot Idle or occupied by one packet, do nothing.
-        #     total_p = sum(power_levels)
-        #     for device_id, x in enumerate(sim_history[slot]):
-        #         if x != 0:
-        #             # The case where device has no packet to transmit, we do not care...
-        #             if 10**(0.1*threshold) > power_levels[device_id] / (total_p - power_levels[device_id]):
-        #                 if x != max_trans:
-        #                     # max_trans has not been reached. Execute backoff procedure
-        #                     # The new slot index is the sum of current one and backoff length
-        #                     while 1:
-        #                         new_slot = int(np.random.exponential(scale=backoff)) + 1 + slot
-        #                         if new_slot <= sim_duration-1:
-        #                         # Take care that the selected new slot should not be out of range.
-        #                             # Also we should note that selected new slot has not yet scheduled
-        #                             # for another retransmission
-        #                             if sim_history[(new_slot, device_id)] == 0:
-        #                             # transmission trial should be incremented by 1
-        #                                 sim_history[(new_slot, device_id)] = x+1
-        #                                 break
-        #                         else:
-        #                             break
-        #                     # Do not forget to 清零 for this slot.
-        #                     sim_history[(slot, device_id)] = 0
-        #                 elif x == max_trans:
-        #                     # The case where max_trans has been reached. Failure of this packet transmission
-        #                     sim_history[(slot, device_id)] = max_trans + 1
-
-        # Second, generate packet and schedule the transmission in the next slot for each device
-
     # 统计第 i 次传输出现的次数，并据此计算至少需要传输 i 次的频数，如果实验足够长，频数将趋近于概率
     statistics = itemfreq(sim_history[warm_t:sim_duration, ::].reshape(1, device_nb*(sim_duration-warm_t))[0])[1:]
 
@@ -194,7 +161,7 @@ def main(sim_config_dict, logs_directory):
     # 将仿真结果存储在 sim_result_f 指向的文件中
     sim_result_f = os.path.join(
         logs_directory,
-        "simd={0}_N={1}_threshold={2}dB_l={3}_m={4}_backoff={5}_alpha={6}_mufading_{7}_mushadowing={8}_sigmashadowing={9}_tmp={10}.csv".format(
+        "simd={0}_N={1}_threshold={2}dB_l={3}_m={4}_backoff={5}_alpha={6}_mufading={7}_mushadowing={8}_sigmashadowing={9}_tmp={10}.csv".format(
             SIM_DURATION, DEVICE_NB, THERSHOLD, L, M, BACKOFF, ALPHA, MU_FADING, MU_SHADOWING, SIGMA_SHADOWING, strftime("%Y%m%d%H%M%S")
         )
     )
@@ -229,16 +196,13 @@ def main(sim_config_dict, logs_directory):
     f_handler.close()
 
 if __name__ == "__main__":
-
     start_t = int(time())
-
     logs_directory = 'logs'
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)
-
-    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_alpha=1p00_l=1_m=1_threshold=0dB.json')
+    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_l=1_m=1_threshold=-3dB.json')
     print "Now do simulation with configuration file: ", sim_config_f
 
     sim_config_dict = {}
@@ -273,7 +237,7 @@ if __name__ == "__main__":
         if order < 5:
             sim_config_dict["DEVICE_NB"] = DEVICE_NB[0]
             sim_config_dict["SIM_DURATION"] = SIM_DURATION[0]
-        elif order >= 5 and order < 16:
+        elif 5 <= order < 16:
             sim_config_dict["DEVICE_NB"] = DEVICE_NB[1]
             sim_config_dict["SIM_DURATION"] = SIM_DURATION[1]
         else:
