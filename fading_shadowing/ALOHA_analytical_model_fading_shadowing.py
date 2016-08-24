@@ -87,10 +87,10 @@ if __name__ == "__main__":
     SIGMA = np.sqrt(2)*np.log(10)/10.0
     P = np.zeros(MAX_TRANS)
     P[0] = 1
-    THRLD = 0.0  #unit dB
+    THRLD = -3  #unit dB
     THRLD = 10**(THRLD/10.0) # decimal
     alpha_start = 0.2
-    l, m = 1, 1
+    l, m = 1, 2
     alpha_end = 2.02
     step = 0.005
 

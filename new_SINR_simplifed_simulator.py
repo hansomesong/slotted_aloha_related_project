@@ -207,7 +207,7 @@ if __name__ == "__main__":
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)
-    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_l=1_m=1_threshold=0dB.json')
+    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_l=2_m=1_threshold=-3dB.json')
     print "Now do simulation with configuration file: ", sim_config_f
 
     sim_config_dict = {}
@@ -243,6 +243,7 @@ if __name__ == "__main__":
             sim_config_dict["DEVICE_NB"] = DEVICE_NB[0]
             sim_config_dict["SIM_DURATION"] = SIM_DURATION[0]
         elif 5 <= order < 16:
+
             sim_config_dict["DEVICE_NB"] = DEVICE_NB[1]
             sim_config_dict["SIM_DURATION"] = SIM_DURATION[1]
         else:
