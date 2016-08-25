@@ -207,7 +207,7 @@ if __name__ == "__main__":
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)
-    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_l=2_m=1_threshold=-3dB.json')
+    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_l=1_m=2_threshold=-3dB.json')
     print "Now do simulation with configuration file: ", sim_config_f
 
     sim_config_dict = {}

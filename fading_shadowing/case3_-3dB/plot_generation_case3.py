@@ -87,12 +87,12 @@ with open(ana_result_f_no, 'r') as ana_no_f_handler, \
 
     plt.xlabel("The fresh packet arrival intensity")
     plt.ylabel("The packet loss rate")
-    plt.plot(ana_less_intensity, ana_less_plr, 'r-', label="analytical result with power decrement")
-    plt.plot(ana_no_intensity, ana_no_plr, 'b-', label="analytical result case with identical power")
-    plt.plot(ana_more_intensity, ana_more_plr, 'g-', label="analytical result with power increment")
-    plt.plot(sim_no_intensity, sim_no_plr, 'b*', label="simulation result with identical power")
-    plt.plot(sim_more_intensity, sim_more_plr, 'go', label="simulation result with power increment")
-    plt.plot(sim_less_intensity, sim_less_plr, 'r+', label="simulation result with power decrement")
+    plt.plot(ana_less_intensity, ana_less_plr, 'r-', label="analytical, power decrement")
+    plt.plot(ana_no_intensity, ana_no_plr, 'b-', label="analytical, identical power")
+    plt.plot(ana_more_intensity, ana_more_plr, 'g-', label="analytical, power increment")
+    plt.plot(sim_no_intensity, sim_no_plr, 'b*', label="simulation, identical power")
+    plt.plot(sim_more_intensity, sim_more_plr, 'go', label="simulation, power increment")
+    plt.plot(sim_less_intensity, sim_less_plr, 'r+', label="simulation, power decrement")
 
     plt.xlabel("The fresh packet arrival intensity")
     plt.ylabel("The packet loss rate")
@@ -111,12 +111,12 @@ with open(ana_result_f_no, 'r') as ana_no_f_handler, \
 plt.subplot(2, 1, 2)
 plt.grid()
 
-plt.semilogy(ana_less_intensity, ana_less_plr, 'r-', label="analytical result with power decrement")
-plt.semilogy(ana_no_intensity, ana_no_plr, 'b-', label="analytical result with identical power")
-plt.semilogy(ana_more_intensity, ana_more_plr, 'g-', label="analytical result with power increment")
-plt.semilogy(sim_no_intensity, sim_no_plr, 'b*', label="simulation result with  identical power")
-plt.semilogy(sim_more_intensity, sim_more_plr, 'go', label="simulation result with power increment")
-plt.semilogy(sim_less_intensity, sim_less_plr, 'r+', label="simulation result with power decrement")
+plt.semilogy(ana_less_intensity, ana_less_plr, 'r-', label="analytical, power decrement")
+plt.semilogy(ana_no_intensity, ana_no_plr, 'b-', label="analytical, identical power")
+plt.semilogy(ana_more_intensity, ana_more_plr, 'g-', label="analytical, power increment")
+plt.semilogy(sim_no_intensity, sim_no_plr, 'b*', label="simulation, identical power")
+plt.semilogy(sim_more_intensity, sim_more_plr, 'go', label="simulation, power increment")
+plt.semilogy(sim_less_intensity, sim_less_plr, 'r+', label="simulation, power decrement")
 
 
 plt.legend(loc='best', numpoints=2)
