@@ -12,3 +12,9 @@ transmitted at this slot, the device send this packet.Then the device decrement 
 
 Note that packet loss rate is measured by the ratio between the number of dropped packets (still failed after the maximum allowed transmissions)
 and the number of sent packets (delivered or dropped).
+
+Some thinking:
+    With large number of devices, the simulation result is more approach to the analytical one. For example, for fading and shadowing analysis, with 0dB as SINR threshold, around 1.0 alpha,
+    1000 devices with 20,000 observation slot, the packet loss rate is greater than a simulation with 500 devices and 5000 observed slots.
+
+    Due to list comprehension optimization, this simulation script is more resistant to the increase of device number.

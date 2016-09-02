@@ -203,11 +203,14 @@ def main(sim_config_dict, logs_directory):
 if __name__ == "__main__":
     start_t = int(time())
     logs_directory = 'logs'
+    SIM_CONFIG_DIR = 'sim_configs'
+    SIM_PART = 'shadowing'
+    SIM_CONFIG_FILE = 'case_K=5_l=1_m=1_threshold=3dB.json'
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)
-    sim_config_f = os.path.join('sim_configs', 'fading_shadowing', 'case_K=5_l=1_m=2_threshold=-3dB.json')
+    sim_config_f = os.path.join(SIM_CONFIG_DIR, SIM_PART, SIM_CONFIG_FILE)
     print "Now do simulation with configuration file: ", sim_config_f
 
     sim_config_dict = {}
