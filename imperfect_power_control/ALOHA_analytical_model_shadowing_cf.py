@@ -186,7 +186,7 @@ def do_analytic(P, delta, start, end, l, m, sigma, thrld, step):
 
 if __name__ == "__main__":
 
-    MAX_TRANS = 4
+    MAX_TRANS = 5
     DELTA = 0.001
     SIGMA = 1
     P = np.zeros(MAX_TRANS)

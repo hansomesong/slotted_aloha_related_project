@@ -31,14 +31,14 @@ def listener(sim_result_f, q):
 # In our process pool, except the one in charge of writing records into CSV file, all rest processes are used
 # to treat log file stored in a certain directory. Every time a process processes a log file, it store the retrieved
 # information into a QUEUE data structure, which will be served by listener process.
-def worker(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing, q):
+def worker(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing, q):
     csv_row = []
-    sim_result = run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing)
+    sim_result = run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing)
     csv_row.extend(sim_result[2])
     csv_row.append(alpha)
     q.put(csv_row)
 
-def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing):
+def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing):
     '''
         In this method, during the backoff slot, it is possible to generate and transmit new packets.
         Only the packets generated during the slot scheduled for retransmission will be abandoned.
@@ -55,9 +55,13 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
     # BACK_OFFS = [backoff*np.power(2, i) for i in range(max_trans)]
     # BACK_OFFS = [4, 15, 30, 50]
     BACK_OFFS = [backoff for i in range(max_trans)]
-
+    # The involved device number will be determined together by binomial probability and alpha
+    # The involved device number should be not less than 400.
+    # The probability p in binomial distribution should less than 0.01 to assure that binomial distribution is close to poisson distribution
+    device_nb = max(int(alpha/binomial_p), 400)
     # print "Possible Back off values:", BACK_OFFS
     LM = [1.0*l**(k)*m**(max_trans-k-1) for k in range(max_trans)]
+
     start_t = int(time())
     seed = hash((start_t + os.getpid()*13)*0.0000001)
     np.random.seed(seed)
@@ -67,7 +71,7 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
         # First generate new packets.
         # Which device has packets to transmit?
         # In the following, k refers to the k th transmision instead of retransmission
-        sim_history[slot] = np.array([bernoulli.rvs(alpha/device_nb) if k == 0 else k for k in sim_history[slot]])
+        sim_history[slot] = np.array([bernoulli.rvs(binomial_p) if k == 0 else k for k in sim_history[slot]])
         # With which transmit power they can sue?
         power_levels = np.array([LM[k-1] if k != 0 else k*1.0 for k in sim_history[slot]])
         # 如果 shadowing 的方差不是0，那么生成一系列 log-normal 随机数，否则生成同等长度的1
@@ -104,6 +108,7 @@ def run_simulation(alpha, max_trans, device_nb, threshold, l, m, backoff, sim_du
                         new_slot = int(np.random.exponential(scale=BACK_OFFS[x-1])) + 1 + slot
                         if new_slot <= sim_duration-1:
                         # Take care that the selected new slot should not be out of range.
+                        # 这些重传规划在 simulation 之外的 packet 我们算他是失败呢还是成功呢？
                             # Also we should note that selected new slot has not yet scheduled
                             # for another retransmission
                             if sim_history[(new_slot, device_id)] == 0:
@@ -147,12 +152,12 @@ def main(sim_config_dict, logs_directory):
     # 注意：一定要使用 Manager queue，否则无法工作，至于原因，我不晓得
 
     SIM_DURATION = sim_config_dict['SIM_DURATION']
-    DEVICE_NB = sim_config_dict["DEVICE_NB"]
+    BINOMIAL_P = sim_config_dict["BINOMIAL_P"]
+    # DEVICE_NB = sim_config_dict["DEVICE_NB"]
     BACKOFF = sim_config_dict["BACKOFF"]
     THERSHOLD = sim_config_dict['THRESLD']
-    L = sim_config_dict['L']
-    M = sim_config_dict['M']
-    MAX_TRANS = sim_config_dict['MAX_TRANS']
+
+    MAX_TRANS, L, M = sim_config_dict['MAX_TRANS'], sim_config_dict['L'], sim_config_dict['M']
     ALPHA = sim_config_dict['ALPHA']
     WARM_T = sim_config_dict['WARM_UP']
     MU_FADING = sim_config_dict['MU_FADING']
@@ -160,9 +165,8 @@ def main(sim_config_dict, logs_directory):
     SIGMA_SHADOWING = sim_config_dict['SIGMA_SHADOWING']
     # 针对每个 alpha 值，仿真重复次数
     SIM_REPEAT_NB = sim_config_dict['SIM_REPEAT_NB']
-
     ALPHAS = [ALPHA for i in range(SIM_REPEAT_NB)]
-
+    DEVICE_NB = int(ALPHA/BINOMIAL_P)
     # 将仿真结果存储在 sim_result_f 指向的文件中
     sim_result_f = os.path.join(
         logs_directory,
@@ -199,7 +203,7 @@ def main(sim_config_dict, logs_directory):
     for alpha in ALPHAS:
         job = pool.apply_async(
             worker,
-            (alpha, MAX_TRANS, DEVICE_NB, THERSHOLD, L, M, BACKOFF, SIM_DURATION, WARM_T, MU_FADING, MU_SHADOWING, SIGMA_SHADOWING, q)
+            (alpha, MAX_TRANS, BINOMIAL_P, THERSHOLD, L, M, BACKOFF, SIM_DURATION, WARM_T, MU_FADING, MU_SHADOWING, SIGMA_SHADOWING, q)
         )
         jobs.append(job)
 
@@ -239,34 +243,40 @@ if __name__ == "__main__":
     sim_config_dict["MAX_TRANS"] = json_config['MAX_TRANS']
     SIM_DURATION = json_config['SIM_DURATION']
     # WARM_UP attribute in JSON file is a percent value, for example, 10%
-    sim_config_dict["WARM_UP"] = int(json_config['WARM_UP']*0.01*SIM_DURATION)
     sim_config_dict["MU_FADING"] = json_config['MU_FADING']
     sim_config_dict["MU_SHADOWING"] = json_config['MU_SHADOWING']
     sim_config_dict["SIGMA_SHADOWING"] = json_config['SIGMA_SHADOWING']
     # 针对每个 alpha 值，仿真重复次数
     sim_config_dict["SIM_REPEAT_NB"] = json_config['SIM_REPEAT_NB']
     sim_config_dict["SIM_INCRE_STEP"] = json_config['SIM_INCRE_STEP']
+    sim_config_dict["BINOMIAL_P"] = json_config["BINOMIAL_P"]
 
     ALPHA_START = json_config['ALPHA_START']
     ALPHA_END = json_config['ALPHA_END']
     SIM_INCRE_STEP = json_config['SIM_INCRE_STEP']
-    DEVICE_NB = json_config['DEVICE_NB']
-    ALPHA_INTERVAL = np.arange(ALPHA_START, ALPHA_END, SIM_INCRE_STEP)
+    # DEVICE_NB = json_config['DEVICE_NB']
+    ALPHA_INTERVAL = np.arange(ALPHA_START, ALPHA_END+0.00001, SIM_INCRE_STEP) # Do not forget to include the ALPHA_END
 
     for order, ALPHA in enumerate(ALPHA_INTERVAL, 1):
         # 我们一般从 packet loss rate 大致为 0.01 的 ALPHA 值开始，所以前四次仿真，我们把 simulation duration 设为 10000
         # 仿真需要的设备数目因而也不需要很高 (因为 ALPHA 取值不高)
         sim_config_dict["ALPHA"] = ALPHA
         if order < 5:
-            sim_config_dict["DEVICE_NB"] = DEVICE_NB[0]
+            # sim_config_dict["DEVICE_NB"] = DEVICE_NB[0]
             sim_config_dict["SIM_DURATION"] = SIM_DURATION[0]
+            sim_config_dict["WARM_UP"] = int(json_config['WARM_UP']*0.01*SIM_DURATION[0])
+
         elif 5 <= order < 16:
 
-            sim_config_dict["DEVICE_NB"] = DEVICE_NB[1]
+            # sim_config_dict["DEVICE_NB"] = DEVICE_NB[1]
             sim_config_dict["SIM_DURATION"] = SIM_DURATION[1]
+            sim_config_dict["WARM_UP"] = int(json_config['WARM_UP']*0.01*SIM_DURATION[1])
+
         else:
-            sim_config_dict["DEVICE_NB"] = DEVICE_NB[-1]
+            # sim_config_dict["DEVICE_NB"] = DEVICE_NB[-1]
             sim_config_dict["SIM_DURATION"] = SIM_DURATION[-1]
+            sim_config_dict["WARM_UP"] = int(json_config['WARM_UP']*0.01*SIM_DURATION[-1])
+
         print sim_config_dict
         # 将填充好的仿真参数字典传递给 main(), 开启多进程下的仿真
         main(sim_config_dict, logs_directory)
