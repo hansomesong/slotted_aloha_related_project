@@ -84,7 +84,7 @@ with open(sim_result_f_less, 'r') as sim_less_f_handler:
     plt.xlabel("The fresh packe arrival intensity")
     plt.ylabel("The packet loss rate")
     plt.legend(loc='best', numpoints=2)
-    plt.axis([0, 2.05, 0, 1.05])
+    plt.axis([0, 1.05, 0, 1.05])
     plt.grid()
 
 plt.subplot(2, 1, 2)

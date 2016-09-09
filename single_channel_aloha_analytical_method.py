@@ -92,18 +92,20 @@ if __name__ == "__main__":
     P = np.zeros(MAX_TRANS)
     P[0] = 1
     DELTA = 0.0000001
-    THRESLD = 0.5
-    alpha_end =1.02
+    THRLD = -3.0
+    alpha_end = 2.02
     step = 0.005
     print [cul_power_chf2cdf(n, P, alpha_start, l, m) for n in range(50)]
     # print solve_fxp(P, DELTA, alpha, l, m, THRESLD)
 
     # solve_fxp(P, DELTA, 1.5, l, m, 0.33)
 
-    result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, THRESLD, step)
+    result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, THRLD, step)
 
+    print result
+    #
+    result_f = "improved_cf_shadowing_analytical_result_threshold={0}dB_l={1}_m={2}_sigma={3}.csv".format(THRLD, l, m, SIGMA)
 
-    result_f = "/Users/qsong/Documents/MATLAB/analytical_result_0p5.csv"
     with open(result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')
         for n, vector_p in enumerate(result, 1):

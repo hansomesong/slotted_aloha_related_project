@@ -166,8 +166,21 @@ def main(sim_config_dict, logs_directory):
     # 将仿真结果存储在 sim_result_f 指向的文件中
     sim_result_f = os.path.join(
         logs_directory,
-        "simd={0}_N={1}_threshold={2}dB_l={3}_m={4}_backoff={5}_alpha={6}_mufading={7}_mushadowing={8}_sigmashadowing={9}_tmp={10}.csv".format(
-            SIM_DURATION, DEVICE_NB, THERSHOLD, L, M, BACKOFF, ALPHA, MU_FADING, MU_SHADOWING, SIGMA_SHADOWING, strftime("%Y%m%d%H%M%S")
+        "simd={0}_warm={1}_maxtrans={2}_N={3}_threshold={4}dB_l={5}_m={6}_backoff={7}_alpha={8}_mufading={9}_mushadowing={10}_sigmashadowing={11}_tmp={12}.csv".
+        format(
+            SIM_DURATION,
+            WARM_T,
+            MAX_TRANS,
+            DEVICE_NB,
+            THERSHOLD,
+            L,
+            M,
+            BACKOFF,
+            ALPHA,
+            MU_FADING,
+            MU_SHADOWING,
+            SIGMA_SHADOWING,
+            strftime("%Y%m%d%H%M%S")
         )
     )
 
@@ -205,12 +218,13 @@ if __name__ == "__main__":
     logs_directory = 'logs'
     SIM_CONFIG_DIR = 'sim_configs'
     SIM_PART = 'shadowing'
-    SIM_CONFIG_FILE = 'case_K=5_l=1_m=1_threshold=3dB.json'
+    SIM_CONFIG_FILE = 'case_K=5_l=1_m=1_threshold=-3dB.json'
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)
     sim_config_f = os.path.join(SIM_CONFIG_DIR, SIM_PART, SIM_CONFIG_FILE)
+    print "Simulation for:", SIM_PART
     print "Now do simulation with configuration file: ", sim_config_f
 
     sim_config_dict = {}
@@ -223,7 +237,9 @@ if __name__ == "__main__":
     sim_config_dict["L"] = json_config['L']
     sim_config_dict["M"] = json_config['M']
     sim_config_dict["MAX_TRANS"] = json_config['MAX_TRANS']
-    sim_config_dict["WARM_UP"] = json_config['WARM_UP']
+    SIM_DURATION = json_config['SIM_DURATION']
+    # WARM_UP attribute in JSON file is a percent value, for example, 10%
+    sim_config_dict["WARM_UP"] = int(json_config['WARM_UP']*0.01*SIM_DURATION)
     sim_config_dict["MU_FADING"] = json_config['MU_FADING']
     sim_config_dict["MU_SHADOWING"] = json_config['MU_SHADOWING']
     sim_config_dict["SIGMA_SHADOWING"] = json_config['SIGMA_SHADOWING']
@@ -234,7 +250,6 @@ if __name__ == "__main__":
     ALPHA_START = json_config['ALPHA_START']
     ALPHA_END = json_config['ALPHA_END']
     SIM_INCRE_STEP = json_config['SIM_INCRE_STEP']
-    SIM_DURATION = json_config['SIM_DURATION']
     DEVICE_NB = json_config['DEVICE_NB']
     ALPHA_INTERVAL = np.arange(ALPHA_START, ALPHA_END, SIM_INCRE_STEP)
 
