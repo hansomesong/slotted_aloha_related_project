@@ -53,8 +53,8 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     '''
     BETA = np.log(10)/10.0
     # BACK_OFFS = [backoff*np.power(2, i) for i in range(max_trans)]
-    # BACK_OFFS = [4, 15, 30, 50]
-    BACK_OFFS = [backoff for i in range(max_trans)]
+    BACK_OFFS = [4, 8, 16, 32]
+    # BACK_OFFS = [backoff for i in range(max_trans)]
     # The involved device number will be determined together by binomial probability and alpha
     # The involved device number should be not less than 400.
     # The probability p in binomial distribution should less than 0.01 to assure that binomial distribution is close to poisson distribution
