@@ -119,5 +119,5 @@ ax2.axis([X_START, X_END, Y_START, Y_END])
 ax2.axis([X_START, X_END, Y_START, Y_END])
 ax2.grid()
 
-plt.savefig('shadowing_case1.eps', format='eps', dpi=300)
+plt.savefig('shadowing_case3.eps', format='eps', dpi=300)
 plt.show()

@@ -32,6 +32,18 @@ def chf_compound_sln(alpha, P, sigma, omega, v, k):
         for m in range(DIMENSION)
     ])
 
+    # W_MULTIPLIER = np.array([
+    #     np.power(1-lambertw(2j*omega*np.power(v, m-k)*np.power(BETA*sigma, 2), 0), -0.5)*
+    #     np.exp(
+    #         -1.0*(
+    #             -2*lambertw(2j*omega*np.power(v, m-k)*np.power(BETA*sigma, 2), 0)
+    #             + np.power(lambertw(2j*omega*np.power(v, m-k)*np.power(BETA*sigma, 2), 0), 2)
+    #         )/np.power(2*BETA*sigma, 2)
+    #     )
+    #
+    #     for m in range(DIMENSION)
+    # ])
+
     # print W_MULTIPLIER
     # print P.shape
 
@@ -164,7 +176,7 @@ def solve_fxp(P, delta, alpha, v, sigma, thrld):
         ecart = abs(tmp_failure_p - failure_prob)/failure_prob
         failure_prob = tmp_failure_p + np.finfo(float).eps
 
-        print "vector P", P, P[-1]*trans_failure_p_2(thrld, P, alpha, v, K-1, sigma)
+        # print "vector P", P, P[-1]*trans_failure_p_2(thrld, P, alpha, v, K-1, sigma)
 
     # Note that np.floor(l**(K-1)/threld-M[-1])
     result = []
@@ -188,21 +200,31 @@ if __name__ == "__main__":
 
     MAX_TRANS = 5
     DELTA = 0.001
-    SIGMA = 1
+    SIGMA = 2.0
     P = np.zeros(MAX_TRANS)
     P[0] = 1
     # 注意： 这里 门限值一定是 分贝单位
     THRLD = -3.0
-    alpha_start = 1.12
+    alpha_start = 1.08
     l, m = 1, 1
-    alpha_end = 1.121
+    alpha_end = 1.12
     step = 0.005
 
     result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, SIGMA, THRLD, step)
 
-    print result
+
+    # plt.figure()
+    # P = np.array(result[0][0:5])
+    # x_axis = np.arange(0+0.000000000000000000000000001, 6.0, 0.02)
+    # x_axis_2 = np.array([-10.0*np.log10(x) for x in x_axis])
+    # y = [1-trans_failure_p_2(x, P, alpha_start, 1, 0, SIGMA) for x in x_axis_2]
+    # print trans_failure_p_2(-3.0, P, alpha_start, 1, 0, SIGMA)
+    # plt.plot(x_axis, y)
     #
-    # result_f = "improved_cf_shadowing_analytical_result_threshold={0}dB_l={1}_m={2}_sigma={3}_precison={4}.csv".format(THRLD, l, m, SIGMA, DELTA)
+    # plt.show()
+    # print result
+    #
+    # result_f = "improved_cf_shadowing_analytical_result_threshold={0}dB_l={1}_m={2}_sigma={3}_max_trans={4}.csv".format(THRLD, l, m, SIGMA, MAX_TRANS)
     #
     # with open(result_f, 'w') as f_handler:
     #     spamwriter = csv.writer(f_handler, delimiter=',')

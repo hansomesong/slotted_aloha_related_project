@@ -109,14 +109,14 @@ if __name__ == "__main__":
 
     MAX_TRANS = 5
     DELTA = 0.0000001
-    SIGMA = .0001
+    SIGMA = 1
     P = np.zeros(MAX_TRANS)
     P[0] = 1
     # 注意： 这里 门限值一定是 分贝单位
-    THRLD = 3
-    alpha_start = 0.8
-    l, m = 2, 1
-    alpha_end = 0.802
+    THRLD = -3
+    alpha_start = 1.12
+    l, m = 1, 1
+    alpha_end = 1.12
     step = 0.005
     rho = 1
 

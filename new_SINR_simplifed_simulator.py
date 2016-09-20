@@ -13,6 +13,7 @@ import json
 from time import strftime
 import glob
 import pprint
+from statsmodels.distributions.empirical_distribution import ECDF
 from scipy.stats import itemfreq
 
 # Although many processes could involve in the treatment of log file, we have only one process responsible for
@@ -38,7 +39,7 @@ def worker(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration,
     csv_row.append(alpha)
     q.put(csv_row)
 
-def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing):
+def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing, output_statistics=False):
     '''
         In this method, during the backoff slot, it is possible to generate and transmit new packets.
         Only the packets generated during the slot scheduled for retransmission will be abandoned.
@@ -51,29 +52,43 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
         ipc_way: referst to imperfect power control way. If set as "DIFF", each retransmission power error may be different.
         If set as "SAME", each retransmission power error is identical.
     '''
+    start_t = int(time())
+    # Generate the random number generator seed, make sure each process uses a different seed otherwise
+    # the simulation result will be the same when multiple processes run the this method.
+    seed = hash((start_t + os.getpid()*13)*0.0000001)
+    np.random.seed(seed)
+
     BETA = np.log(10)/10.0
     # BACK_OFFS = [backoff*np.power(2, i) for i in range(max_trans)]
-    BACK_OFFS = [4, 8, 16, 32]
-    # BACK_OFFS = [backoff for i in range(max_trans)]
+    # BACK_OFFS = [8, 30, 60, 100]
+    BACK_OFFS = [backoff for i in range(max_trans)]
     # The involved device number will be determined together by binomial probability and alpha
     # The involved device number should be not less than 400.
     # The probability p in binomial distribution should less than 0.01 to assure that binomial distribution is close to poisson distribution
     device_nb = max(int(alpha/binomial_p), 400)
     # print "Possible Back off values:", BACK_OFFS
-    LM = [1.0*l**(k)*m**(max_trans-k-1) for k in range(max_trans)]
+    # For example, if max_trans = 5, that means device may have 5 different transmit power level
+    # if l=2, m=1, then
+    # LM = [1, 2, 4, 8, 16]
+    # Now Add one zero in the beginning of LM list, to facilitate the generation of
+    # Then each element in LM list represents the transmit power for the kth transmission.
+    # The 0th transmission transmit power is 0
+    LM = [1.0*np.power(l, k-1)*np.power(m, max_trans-k-2) if k != 0.0 else 0.0 for k in range(max_trans+1)]
 
-    start_t = int(time())
-    seed = hash((start_t + os.getpid()*13)*0.0000001)
-    np.random.seed(seed)
+    normalized_sinr = []
+
+    transmissions_nb = []
     sim_history = np.zeros((sim_duration, device_nb), dtype=np.int)
     # shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, device_nb)
     for slot in range(sim_duration-1):
         # First generate new packets.
         # Which device has packets to transmit?
         # In the following, k refers to the k th transmision instead of retransmission
-        sim_history[slot] = np.array([bernoulli.rvs(binomial_p) if k == 0 else k for k in sim_history[slot]])
+        sim_history[slot] = np.array([bernoulli.rvs(binomial_p) if k == 0.0 else k for k in sim_history[slot]])
         # With which transmit power they can sue?
-        power_levels = np.array([LM[k-1] if k != 0 else k*1.0 for k in sim_history[slot]])
+        power_levels = np.array([LM[k] for k in sim_history[slot]])
+
+        transmissions_nb.append(sum([1 for power_level in power_levels if power_level > 0.0]))
         # 如果 shadowing 的方差不是0，那么生成一系列 log-normal 随机数，否则生成同等长度的1
         if sigma_shadowing > 0:
             shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, device_nb)
@@ -91,10 +106,20 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
         total_p = sum(power_levels)
         # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
         # (计算实际接收信噪比的思路会不可避免地考虑信道中只有一个传输的情况，导致程序的执行效率低下)
+        # curr_trans_results = [
+        #     (10**(0.1*threshold)) * (total_p - power_levels[device_id]) > power_levels[device_id]
+        #     if k != 0 else False for device_id, k in enumerate(sim_history[slot])
+        # ]
         curr_trans_results = [
-            (10**(0.1*threshold)) * (total_p - power_levels[device_id]) > power_levels[device_id]
+            (total_p - power_levels[device_id])/power_levels[device_id] > 1.0/(10**(0.1*threshold))
             if k != 0 else False for device_id, k in enumerate(sim_history[slot])
         ]
+
+        normalized_sinr.extend(
+            [(k-1, (total_p - power_levels[device_id])/power_levels[device_id])
+             for device_id, k in enumerate(sim_history[slot]) if k != 0]
+        )
+
         # print curr_trans_results
         for device_id, curr_trans_result in enumerate(curr_trans_results):
             # 如果 SINR门限值*干扰值 大于 接收功率，则需要对这个包执行重传操作
@@ -111,6 +136,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
                         # 这些重传规划在 simulation 之外的 packet 我们算他是失败呢还是成功呢？
                             # Also we should note that selected new slot has not yet scheduled
                             # for another retransmission
+                            # 到底有没有必要 专门找 not yet scheduled slot 呢？
                             if sim_history[(new_slot, device_id)] == 0:
                             # transmission trial should be incremented by 1
                                 sim_history[(new_slot, device_id)] = x+1
@@ -137,10 +163,30 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
 
     # Initialize the return probability vector with 0, the length of this vector is 1+MAX_ALLOWED_RETRANSMISSION_NB
     # vector_p = [sum(statistics[i:])*1.0/sum(statistics) for i in range(len(statistics))]
+
+    empirical_cdfs = [[] for x in range(max_trans)]
+    for x in range(max_trans):
+        empirical_cdfs[x] = [element[1] for element in normalized_sinr if element[0] == x]
+
+    if output_statistics:
+        # 将统计结果写入到 文件里 默认不开启
+        cdf_csv_file = "empirical_cdf_{0}.csv".format(alpha)
+        cdf_start = 0.0
+        cdf_end = 6.0
+        with open(cdf_csv_file, 'w') as f_handler:
+            spamwriter = csv.writer(f_handler, delimiter=',')
+            for index, element in enumerate(empirical_cdfs):
+                ecdf = ECDF(element)
+                cdf = ecdf(np.arange(cdf_start, cdf_end, 0.02))
+                spamwriter.writerow(cdf)
+            spamwriter.writerow(transmissions_nb)
+
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
-    print "Time:", int(time_elapsed), "Alpha:", alpha, "Seed:", seed, "Result:", [e[1] for e in statistics], vector_p
-    return alpha, list(statistics), vector_p
+    statistics_vector = [e[1] for e in statistics]
+    statistics_vector.extend(vector_p)
+    print "Time:", int(time_elapsed), "Alpha:", alpha, "Seed:", seed, "Result:", statistics_vector
+    return alpha, list(statistics), statistics_vector
 
 def main(sim_config_dict, logs_directory):
     '''
@@ -221,8 +267,8 @@ if __name__ == "__main__":
     start_t = int(time())
     logs_directory = 'logs'
     SIM_CONFIG_DIR = 'sim_configs'
-    SIM_PART = 'shadowing'
-    SIM_CONFIG_FILE = 'case_K=5_l=1_m=1_threshold=-3dB.json'
+    SIM_PART = 'fading_shadowing'
+    SIM_CONFIG_FILE = 'case_K=5_l=2_m=1_threshold=3dB.json'
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
