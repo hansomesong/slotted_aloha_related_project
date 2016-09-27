@@ -2,6 +2,7 @@
 __author__ = 'qsong'
 
 import csv
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -10,17 +11,21 @@ import pandas as pd
 import glob
 
 params = {
-    'legend.fontsize': 'large',
-    'xtick.labelsize': 'large',
-    'ytick.labelsize': 'large',
-    'axes.labelsize': 'large',
+    'legend.fontsize': 25,
+    'xtick.labelsize': 20,
+    'ytick.labelsize': 20,
+    'axes.labelsize': 30
 }
 plt.rcParams.update(params)
+
+# mpl.rcParams['text.usetex'] = True
+# mpl.rcParams.update({'figure.autolayout': True})
+
 
 LOG_DIR = 'logs'
 SUB_DIR = 'fading_shadowing'
 DATA_FOLDED = '.'
-FIGSIZE = (8.0, 5.0)
+FIGSIZE = (15.0, 12.0)
 
 A_P_DECREMENT ="analytical, power decrement"
 A_P_IDENTIC = "analytical, identical power"
@@ -28,6 +33,7 @@ A_P_INCREMENT = "analytical, power increment"
 S_P_IDENTIC = "simulation, identical power"
 S_P_INCREMENT = "simulation, power increment"
 S_P_DECREMENT = "simulation, power decrement"
+NO_LEGENG = '_nolegend_'
 
 X_START = 0.2
 X_END = 1.01
@@ -77,54 +83,54 @@ fig = plt.figure(1, figsize= FIGSIZE)
 # fig = plt.figure(1)
 
 ax = fig.add_subplot(111)    # The big subplot
-ax1 = fig.add_subplot(211)
-ax2 = fig.add_subplot(212)
+# ax1 = fig.add_subplot(211)
+# ax2 = fig.add_subplot(212)
 
 # Turn off axis lines and ticks of the big subplot
-ax.spines['top'].set_color('none')
-ax.spines['bottom'].set_color('none')
-ax.spines['left'].set_color('none')
-ax.spines['right'].set_color('none')
-ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
+# ax.spines['top'].set_color('none')
+# ax.spines['bottom'].set_color('none')
+# ax.spines['left'].set_color('none')
+# ax.spines['right'].set_color('none')
+# ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
 
 # Set common labels
 ax.set_xlabel('Fresh Packet Arrival Intensity')
 ax.set_ylabel('Packet Loss Rate')
 
 # 生成子图1
-ax1.plot(ana_no_intensity, ana_no_plr, color='b',  marker='', linestyle='-', linewidth=2, label=A_P_IDENTIC)
-ax1.plot(ana_more_intensity, ana_more_plr, color='g', marker='', linestyle='-.', linewidth=2, label=A_P_INCREMENT)
-ax1.plot(ana_less_intensity, ana_less_plr, color='r', marker='', linestyle='--', linewidth=2, label=A_P_DECREMENT)
-ax1.plot(sim_no_intensity, sim_no_plr, color='b', marker='*', linestyle="", linewidth=2, label=S_P_IDENTIC)
-ax1.plot(sim_more_intensity, sim_more_plr, color='g', marker='o', linestyle="", linewidth=2, label=S_P_INCREMENT)
-ax1.plot(sim_less_intensity, sim_less_plr, color='r', marker='^', linestyle="", linewidth=2, label=S_P_DECREMENT)
-ax1.plot(sim_no_intensity, sim_no_plr, color='b', marker='*', linestyle="", linewidth=2, label=S_P_IDENTIC)
-ax1.plot(sim_more_intensity, sim_more_plr, color='g', marker='o', linestyle="", linewidth=2, label=S_P_INCREMENT)
-ax1.plot(sim_less_intensity, sim_less_plr, color='r', marker='^', linestyle="", linewidth=2, label=S_P_DECREMENT)
+# ax1.plot(ana_no_intensity, ana_no_plr, color='b',  marker='', linestyle='-', linewidth=2, label=A_P_IDENTIC)
+# ax1.plot(ana_more_intensity, ana_more_plr, color='g', marker='', linestyle='-.', linewidth=2, label=A_P_INCREMENT)
+# ax1.plot(ana_less_intensity, ana_less_plr, color='r', marker='', linestyle='--', linewidth=2, label=A_P_DECREMENT)
+# # ax1.plot(sim_no_intensity, sim_no_plr, color='b', marker='*', linestyle="", linewidth=2, label=S_P_IDENTIC)
+# # ax1.plot(sim_more_intensity, sim_more_plr, color='g', marker='o', linestyle="", linewidth=2, label=S_P_INCREMENT)
+# # ax1.plot(sim_less_intensity, sim_less_plr, color='r', marker='^', linestyle="", linewidth=2, label=S_P_DECREMENT)
+# ax1.plot(sim_no_intensity, sim_no_plr, color='b', marker='*', linestyle="", linewidth=2, label=NO_LEGENG)
+# ax1.plot(sim_more_intensity, sim_more_plr, color='g', marker='o', linestyle="", linewidth=2, label=NO_LEGENG)
+# ax1.plot(sim_less_intensity, sim_less_plr, color='r', marker='^', linestyle="", linewidth=2, label=NO_LEGENG)
 
 # '_nolegend_'
-ax1.legend(loc='best', numpoints=2)
-ax1.set_yticks(np.arange(Y_START, Y_END, Y_STEP))
-ax1.set_xticks(np.arange(X_START, X_END, X_STEP))
-ax1.axis([X_START, X_END, Y_START, Y_END])
-ax1.set_title("SINR Threshold 3dB")
-ax1.grid()
+# ax1.legend(loc='upper left', numpoints=2)
+# ax1.set_yticks(np.arange(Y_START, Y_END, Y_STEP))
+# ax1.set_xticks(np.arange(X_START, X_END, X_STEP))
+# ax1.axis([X_START, X_END, Y_START, Y_END])
+# ax1.set_title("SINR Threshold 3dB")
+# ax1.grid()
 
 # 生成子图2
-ax2.semilogy(ana_no_intensity, ana_no_plr, color='b',  marker='', linestyle='-', linewidth=2, label=A_P_IDENTIC)
-ax2.semilogy(ana_more_intensity, ana_more_plr, color='g', marker='', linestyle='-.', linewidth=2, label=A_P_INCREMENT)
-ax2.semilogy(ana_less_intensity, ana_less_plr, color='r', marker='', linestyle='--', linewidth=2, label=A_P_DECREMENT)
-ax2.semilogy(sim_no_intensity, sim_no_plr, color='b', marker='*', linestyle="", linewidth=2, label=S_P_IDENTIC)
-ax2.semilogy(sim_more_intensity, sim_more_plr, color='g', marker='o', linestyle="", linewidth=2, label=S_P_INCREMENT)
-ax2.semilogy(sim_less_intensity, sim_less_plr, color='r', marker='^', linestyle="", linewidth=2, label=S_P_DECREMENT)
+ax.semilogy(ana_no_intensity, ana_no_plr, color='b',  marker='', linestyle='-', linewidth=2, label=NO_LEGENG)
+ax.semilogy(ana_more_intensity, ana_more_plr, color='g', marker='', linestyle='-.', linewidth=2, label=NO_LEGENG)
+ax.semilogy(ana_less_intensity, ana_less_plr, color='r', marker='', linestyle='--', linewidth=2, label=NO_LEGENG)
+ax.semilogy(sim_no_intensity, sim_no_plr, color='b', marker='*', linestyle="", linewidth=2, label=S_P_IDENTIC)
+ax.semilogy(sim_more_intensity, sim_more_plr, color='g', marker='o', linestyle="", linewidth=2, label=S_P_INCREMENT)
+ax.semilogy(sim_less_intensity, sim_less_plr, color='r', marker='^', linestyle="", linewidth=2, label=S_P_DECREMENT)
 
-ax2.legend(loc='best', numpoints=2)
-ax2.set_xticks(np.arange(X_START, X_END, X_STEP))
-ax2.axis([X_START, X_END, Y_START, Y_END])
-ax2.axis([X_START, X_END, Y_START, Y_END])
-ax2.grid()
+ax.legend(loc='lower right', numpoints=2)
+ax.set_xticks(np.arange(X_START, X_END, X_STEP))
+ax.axis([X_START, X_END, Y_START, Y_END])
+ax.axis([X_START, X_END, Y_START, Y_END])
+ax.grid()
 
-plt.savefig('fading_case1.eps', format='eps', dpi=300)
+plt.savefig('logarithme_fading_case1.eps', format='eps', dpi=300)
 
 
 # with was measured in inkscape

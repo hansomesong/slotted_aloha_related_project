@@ -9,9 +9,9 @@ import numpy as np
 import matplotlib.ticker as ticker
 
 params = {
-    'legend.fontsize': 20,
-    'xtick.labelsize': 'large',
-    'ytick.labelsize': 'large',
+    'legend.fontsize': 25,
+    'xtick.labelsize': 20,
+    'ytick.labelsize': 20,
     'axes.labelsize': 30,
 }
 plt.rcParams.update(params)
@@ -19,10 +19,10 @@ plt.rcParams.update(params)
 
 label_fs = 40
 DATA_FOLDED = '.'
-plt.figure(1, figsize=(18,18))
+plt.figure(1, figsize=(15, 12))
 plt.title("The packet loss rate evolution with SINR threshold = 3dB")
 
-plt.subplot(2, 1, 1)
+plt.subplot(1, 1, 1)
 # The case for threshold 3.0 dB
 ana_result_f_no = os.path.join(DATA_FOLDED, "analytical_result_threshold=0.0_l=1_m=1.csv")
 ana_result_f_more = os.path.join(DATA_FOLDED, "analytical_result_threshold=0.0_l=2_m=1.csv")
@@ -74,20 +74,20 @@ with open(sim_result_f_no, 'r') as sim_no_f_handler:
 
 
 
-    plt.plot(ana_less_intensity, ana_less_plr, 'r-', label="analytical result with power decrement")
-    plt.plot(ana_no_intensity, ana_no_plr, 'b-', label="analytical result with identical power")
-    plt.plot(ana_more_intensity, ana_more_plr, 'g-', label="analytical result with power increment")
-    plt.plot(sim_less_intensity, sim_less_plr, 'r+', label="simulation result with power decrement")
-    plt.plot(sim_more_intensity, sim_more_plr, 'go', label="simulation result with power increment")
-    plt.plot(sim_no_intensity, sim_no_plr, 'b*', label="simulation result with identical power")
-
-    plt.xlabel("Fresh packet arrival intensity")
-    plt.ylabel("Packet loss rate")
-    plt.legend(loc='best', numpoints=2)
-    plt.axis([0, 2.05, 0, 1.05])
-    plt.grid()
-
-plt.subplot(2, 1, 2)
+#     plt.plot(ana_less_intensity, ana_less_plr, 'r-', label="analytical result with power decrement")
+#     plt.plot(ana_no_intensity, ana_no_plr, 'b-', label="analytical result with identical power")
+#     plt.plot(ana_more_intensity, ana_more_plr, 'g-', label="analytical result with power increment")
+#     plt.plot(sim_less_intensity, sim_less_plr, 'r+', label="simulation result with power decrement")
+#     plt.plot(sim_more_intensity, sim_more_plr, 'go', label="simulation result with power increment")
+#     plt.plot(sim_no_intensity, sim_no_plr, 'b*', label="simulation result with identical power")
+#
+#     plt.xlabel("Fresh packet arrival intensity")
+#     plt.ylabel("Packet loss rate")
+#     plt.legend(loc='best', numpoints=2)
+#     plt.axis([0, 2.05, 0, 1.05])
+#     plt.grid()
+#
+# plt.subplot(2, 1, 2)
 plt.grid()
 
 plt.semilogy(ana_less_intensity, ana_less_plr, 'r-', label="analytical result with power decrement")
@@ -102,5 +102,5 @@ plt.ylabel("Packet loss rate")
 plt.xlabel("Fresh packet arrival intensity")
 
 plt.axis([0, 2.05, 0, 1.05])
-plt.savefig('case2.eps', format='eps', dpi=300)
+plt.savefig('logarithme_case2.eps', format='eps', dpi=300)
 plt.show()

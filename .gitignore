@@ -8,6 +8,10 @@ __pycache__/
 # C extensions
 *.so
 
+#ignore the generated csv-type log file
+*.csv
+.idea
+
 # Distribution / packaging
 .Python
 env/

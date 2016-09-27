@@ -184,6 +184,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
     statistics_vector = [e[1] for e in statistics]
+    # calculate the throughput: amount of packets succesfully delivered per slot
     statistics_vector.extend(vector_p)
     print "Time:", int(time_elapsed), "Alpha:", alpha, "Seed:", seed, "Result:", statistics_vector
     return alpha, list(statistics), statistics_vector
@@ -200,11 +201,12 @@ def main(sim_config_dict, logs_directory):
     SIM_DURATION = sim_config_dict['SIM_DURATION']
     BINOMIAL_P = sim_config_dict["BINOMIAL_P"]
     # DEVICE_NB = sim_config_dict["DEVICE_NB"]
+    ALPHA = sim_config_dict['ALPHA']
+
     BACKOFF = sim_config_dict["BACKOFF"]
     THERSHOLD = sim_config_dict['THRESLD']
 
     MAX_TRANS, L, M = sim_config_dict['MAX_TRANS'], sim_config_dict['L'], sim_config_dict['M']
-    ALPHA = sim_config_dict['ALPHA']
     WARM_T = sim_config_dict['WARM_UP']
     MU_FADING = sim_config_dict['MU_FADING']
     MU_SHADOWING = sim_config_dict['MU_SHADOWING']
@@ -212,7 +214,7 @@ def main(sim_config_dict, logs_directory):
     # 针对每个 alpha 值，仿真重复次数
     SIM_REPEAT_NB = sim_config_dict['SIM_REPEAT_NB']
     ALPHAS = [ALPHA for i in range(SIM_REPEAT_NB)]
-    DEVICE_NB = int(ALPHA/BINOMIAL_P)
+    DEVICE_NB = max(int(ALPHA/BINOMIAL_P), 400)
     # 将仿真结果存储在 sim_result_f 指向的文件中
     sim_result_f = os.path.join(
         logs_directory,
@@ -267,8 +269,10 @@ if __name__ == "__main__":
     start_t = int(time())
     logs_directory = 'logs'
     SIM_CONFIG_DIR = 'sim_configs'
-    SIM_PART = 'fading_shadowing'
-    SIM_CONFIG_FILE = 'case_K=5_l=2_m=1_threshold=3dB.json'
+    # SIM_PART = 'fading_shadowing'
+    SIM_PART = 'perfect'
+
+    SIM_CONFIG_FILE = 'case_K=5_l=1_m=1_threshold=3dB.json'
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):

@@ -16,3 +16,23 @@
 "MU_SHADOWING": 0,
 "SIGMA_SHADOWING": 1.0
 }
+
+{
+"MAX_TRANS" :   5,
+"L":            1,
+"M":            2,
+"THRESLD":      3.0,
+"ALPHA_START":  0.24,
+"ALPHA_END":    0.80,
+"ana_step":     0.005,
+"DELTA":        0.0000001,
+"WARM_UP":      10,
+"BACKOFF":      50,
+"SIM_INCRE_STEP":     0.02,
+ "BINOMIAL_P": 0.001,
+"SIM_DURATION": [20000, 20000],
+"SIM_REPEAT_NB": 20,
+"MU_FADING":    0.0,
+"MU_SHADOWING": 0.0,
+"SIGMA_SHADOWING": 0.0
+}

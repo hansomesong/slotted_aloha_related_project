@@ -18,10 +18,10 @@ plt.rcParams.update(params)
 
 
 DATA_FOLDED = '.'
-plt.figure(1, figsize=(18, 18))
+plt.figure(1, figsize=(15, 12))
 plt.title("The packet loss rate evolution with SINR threshold = 3dB")
 
-plt.subplot(2, 1, 1)
+plt.subplot(1, 1, 1)
 label_fs = 40
 legend_fs = 20
 # The case for threshold 3.0 dB
@@ -71,22 +71,22 @@ with open(sim_result_f_less, 'r') as sim_less_f_handler:
     sim_less_plr = [float(element[-2]) for element in sim_less_csv]
 
 
-    plt.plot(ana_less_intensity, ana_less_plr, 'r-', label="analytical result with power decrement")
-    plt.plot(ana_no_intensity, ana_no_plr, 'b-', label="analytical result with identical power")
-    plt.plot(ana_more_intensity, ana_more_plr, 'g-', label="analytical result with power increment")
-    plt.plot(sim_no_intensity, sim_no_plr, 'b*', label="simulation result with identical power")
-    plt.plot(sim_more_intensity, sim_more_plr, 'go', label="simulation result with power increment")
-    plt.plot(sim_less_intensity, sim_less_plr, 'r+', label="simulation result with power decrement")
-
-
-
-    plt.xlabel("Fresh packet arrival intensity")
-    plt.ylabel("Packet loss rate")
-    plt.legend(loc='best', numpoints=2)
-    plt.axis([0, 2.05, 0, 1.05])
-    plt.grid()
-
-plt.subplot(2, 1, 2)
+#     plt.plot(ana_less_intensity, ana_less_plr, 'r-', label="analytical result with power decrement")
+#     plt.plot(ana_no_intensity, ana_no_plr, 'b-', label="analytical result with identical power")
+#     plt.plot(ana_more_intensity, ana_more_plr, 'g-', label="analytical result with power increment")
+#     plt.plot(sim_no_intensity, sim_no_plr, 'b*', label="simulation result with identical power")
+#     plt.plot(sim_more_intensity, sim_more_plr, 'go', label="simulation result with power increment")
+#     plt.plot(sim_less_intensity, sim_less_plr, 'r+', label="simulation result with power decrement")
+#
+#
+#
+#     plt.xlabel("Fresh packet arrival intensity")
+#     plt.ylabel("Packet loss rate")
+#     plt.legend(loc='best', numpoints=2)
+#     plt.axis([0, 2.05, 0, 1.05])
+#     plt.grid()
+#
+# plt.subplot(2, 1, 2)
 plt.grid()
 
 plt.semilogy(ana_less_intensity, ana_less_plr, 'r-', label="analytical result with power decrement")
@@ -104,5 +104,5 @@ plt.xlabel("Fresh packet arrival intensity")
 plt.axis([0, 2.05, 0, 1.05])
 
 
-plt.savefig('case3.eps', format='eps', dpi=200)
+plt.savefig('logarithme_case3.eps', format='eps', dpi=200)
 plt.show()
