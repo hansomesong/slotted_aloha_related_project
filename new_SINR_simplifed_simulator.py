@@ -65,7 +65,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     # The involved device number will be determined together by binomial probability and alpha
     # The involved device number should be not less than 400.
     # The probability p in binomial distribution should less than 0.01 to assure that binomial distribution is close to poisson distribution
-    device_nb = max(int(alpha/binomial_p), 400)
+    device_nb = int(alpha/binomial_p)
     # print "Possible Back off values:", BACK_OFFS
     # For example, if max_trans = 5, that means device may have 5 different transmit power level
     # if l=2, m=1, then
@@ -74,12 +74,10 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     # Then each element in LM list represents the transmit power for the kth transmission.
     # The 0th transmission transmit power is 0
     LM = [1.0*np.power(l, k-1)*np.power(m, max_trans-k-2) if k != 0.0 else 0.0 for k in range(max_trans+1)]
-
     normalized_sinr = []
 
     transmissions_nb = []
     sim_history = np.zeros((sim_duration, device_nb), dtype=np.int)
-    # shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, device_nb)
     for slot in range(sim_duration-1):
         # First generate new packets.
         # Which device has packets to transmit?
@@ -103,7 +101,9 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
 
         # 计算考虑诸多因素之后的，接受功率
         power_levels *= fadings*shadowings
+
         total_p = sum(power_levels)
+        # print "Total Levels", total_p
         # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
         # (计算实际接收信噪比的思路会不可避免地考虑信道中只有一个传输的情况，导致程序的执行效率低下)
         # curr_trans_results = [
@@ -122,7 +122,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
 
         # print curr_trans_results
         for device_id, curr_trans_result in enumerate(curr_trans_results):
-            # 如果 SINR门限值*干扰值 大于 接收功率，则需要对这个包执行重传操作
+            # 如果 curr_trans_result = True，则需要对这个包执行重传操作
             if curr_trans_result:
                 # 需要知道，这是第几次传输失败了
                 x = sim_history[slot][device_id]
@@ -214,7 +214,7 @@ def main(sim_config_dict, logs_directory):
     # 针对每个 alpha 值，仿真重复次数
     SIM_REPEAT_NB = sim_config_dict['SIM_REPEAT_NB']
     ALPHAS = [ALPHA for i in range(SIM_REPEAT_NB)]
-    DEVICE_NB = max(int(ALPHA/BINOMIAL_P), 400)
+    DEVICE_NB = int(ALPHA/BINOMIAL_P)
     # 将仿真结果存储在 sim_result_f 指向的文件中
     sim_result_f = os.path.join(
         logs_directory,
