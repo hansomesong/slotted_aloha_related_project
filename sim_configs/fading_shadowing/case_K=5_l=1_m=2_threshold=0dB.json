@@ -10,7 +10,7 @@
 "WARM_UP":      100,
 "BACKOFF":      36,
 "SIM_INCRE_STEP":     0.02,
-"DEVICE_NB":            [500, 500, 400],
+"BINOMIAL_P": 0.001,
 "SIM_DURATION": [5000, 2500],
 "SIM_REPEAT_NB": 10,
 "MU_FADING":    1.0,

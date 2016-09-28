@@ -1,15 +1,19 @@
 {
 "MAX_TRANS" :   1,
-"l":            1,
-"m":            1,
+"L":            1,
+"M":            1,
 "THRESLD":      3.0,
-"alpha_start":  0.5,
-"alpha_end":    0.5,
+"ALPHA_START":  0.24,
+"ALPHA_END":    0.70,
 "ana_step":     0.005,
 "DELTA":        0.0000001,
-"WARM_UP":      100,
-"BACKOFF":      150,
-"sim_step":     0.02,
-"N":            500,
-"SIM_DURATION": 10000
+"WARM_UP":      10,
+"BACKOFF":      50,
+"SIM_INCRE_STEP":     0.02,
+ "BINOMIAL_P": 0.001,
+"SIM_DURATION": [50000, 25000],
+"SIM_REPEAT_NB": 20,
+"MU_FADING":    0.0,
+"MU_SHADOWING": 0.0,
+"SIGMA_SHADOWING": 0.0
 }
