@@ -4,17 +4,16 @@
 "M":            1,
 "THRESLD":      -3.0,
 "ALPHA_START":  1.12,
-"ALPHA_END":    1.12,
+"ALPHA_END":    1.120001,
 "ana_step":     0.005,
 "DELTA":        0.0000001,
 "WARM_UP":      10,
-"BACKOFF":      36,
+"BACKOFF":      50,
 "SIM_INCRE_STEP":     0.02,
-"DEVICE_NB":            [1200, 1400, 1500],
 "BINOMIAL_P": 0.001,
-"SIM_DURATION": [100000, 50000, 50000],
-"SIM_REPEAT_NB": 4,
+"SIM_DURATION": [20000, 50000, 50000],
+"SIM_REPEAT_NB": 1,
 "MU_FADING":    0.0,
 "MU_SHADOWING": 0,
-"SIGMA_SHADOWING": 2.0
+"SIGMA_SHADOWING": 1.0
 }
