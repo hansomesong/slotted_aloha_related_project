@@ -104,7 +104,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
 
         # 将每个slot，每个设备消耗的能量，存进 energy_history. 我们假设整个slot都以恒定的功率传输数据(不知道这个假设效果如何)
         for device_id, trans_index in enumerate(sim_history[slot, :, 0]):
-            sim_history[slot, device_id, trans_index] = rec_power_levels[device_id]
+            sim_history[slot, device_id, int(trans_index)] = rec_power_levels[device_id]
 
         total_p = sum(rec_power_levels)
         # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
