@@ -74,7 +74,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     # Then each element in LM list represents the transmit power for the kth transmission (Not retransmission).
     # For example, if max_trans = 5, l=2, m=1, then
     # LM = [0, 1, 2, 4, 8, 16] The 0th transmission transmit power is of course 0
-    LM = [1.0*np.power(l, k-1)*np.power(m, max_trans-k-2) if k != 0.0 else 0.0 for k in range(max_trans+1)]
+    LM = [1.0*np.power(l, k-1)*np.power(m, max_trans-k) if k != 0.0 else 0.0 for k in range(max_trans+1)]
 
     # sim_history now is 3-d array.
     # The third dimension is used to represent the transmission index and received power levels history
@@ -281,7 +281,7 @@ if __name__ == "__main__":
     # SIM_PART = 'shadowing'
     SIM_PART = 'perfect'
 
-    SIM_CONFIG_FILE = 'case_K=5_l=1_m=2_threshold=3dB.json'
+    SIM_CONFIG_FILE = 'case_K=5_l=2_m=1_threshold=0dB.json'
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
