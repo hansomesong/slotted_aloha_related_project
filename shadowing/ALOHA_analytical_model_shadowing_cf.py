@@ -199,15 +199,15 @@ def do_analytic(P, delta, start, end, l, m, sigma, thrld, step):
 if __name__ == "__main__":
 
     MAX_TRANS = 5
-    DELTA = 0.001
-    SIGMA = 2.0
+    DELTA = 0.00001
+    SIGMA = 3.0
     P = np.zeros(MAX_TRANS)
     P[0] = 1
     # 注意： 这里 门限值一定是 分贝单位
-    THRLD = -3.0
-    alpha_start = 1.08
+    THRLD = 3.0
+    alpha_start = 0.30
     l, m = 1, 1
-    alpha_end = 1.12
+    alpha_end = 1.05
     step = 0.005
 
     result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, SIGMA, THRLD, step)
@@ -224,13 +224,13 @@ if __name__ == "__main__":
     # plt.show()
     # print result
     #
-    # result_f = "improved_cf_shadowing_analytical_result_threshold={0}dB_l={1}_m={2}_sigma={3}_max_trans={4}.csv".format(THRLD, l, m, SIGMA, MAX_TRANS)
-    #
-    # with open(result_f, 'w') as f_handler:
-    #     spamwriter = csv.writer(f_handler, delimiter=',')
-    #     for n, vector_p in enumerate(result, 1):
-    #         print n, vector_p
-    #         spamwriter.writerow(vector_p)
+    result_f = "improved_cf_shadowing_analytical_result_threshold={0}dB_l={1}_m={2}_sigma={3}_max_trans={4}.csv".format(THRLD, l, m, SIGMA, MAX_TRANS)
+
+    with open(result_f, 'w') as f_handler:
+        spamwriter = csv.writer(f_handler, delimiter=',')
+        for n, vector_p in enumerate(result, 1):
+            print n, vector_p
+            spamwriter.writerow(vector_p)
 
     # k = 0
     # w = 0

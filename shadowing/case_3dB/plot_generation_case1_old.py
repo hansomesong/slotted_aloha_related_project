@@ -20,7 +20,7 @@ params = {
 }
 plt.rcParams.update(params)
 
-LOG_DIR = 'logs2'
+LOG_DIR = 'logs'
 SUB_DIR = 'shadowing'
 DATA_FOLDED = '.'
 FIGSIZE = (15, 12)

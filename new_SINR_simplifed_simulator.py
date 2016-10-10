@@ -278,10 +278,10 @@ if __name__ == "__main__":
     logs_directory = 'logs'
     SIM_CONFIG_DIR = 'sim_configs'
     # SIM_PART = 'fading_shadowing'
-    # SIM_PART = 'shadowing'
-    SIM_PART = 'perfect'
+    SIM_PART = 'shadowing'
+    # SIM_PART = 'perfect'
 
-    SIM_CONFIG_FILE = 'case_K=5_l=2_m=1_threshold=0dB.json'
+    SIM_CONFIG_FILE = 'case_K=5_l=1_m=1_threshold=3dB.json'
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):

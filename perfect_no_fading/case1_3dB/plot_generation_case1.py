@@ -62,7 +62,7 @@ def sim_data_process(sinr_thrsld, l, m, sigma_shadowing, backoff):
             ee =  np.sum(ee_l)/len(ee_l)
         sim_plr.append(plt)
         sim_thrpt.append(alpha*(1-plt))
-        sim_ee.append(ee/m**4)
+        sim_ee.append(ee)
         print POWER_DIR, alpha, alpha*(1-plt), ee
     return sim_intensity, sim_plr, sim_thrpt, sim_ee
 
@@ -87,7 +87,7 @@ def analytic_data_process(f_name, l, m):
             # prob = [float(line[i]) - float(line[i+1]) if i < line_length-1 else float(line[i]) for i in range(line_length)]
             # # print alpha, prob, sum([e*l**(k)*m**(4-k) for k, e in enumerate(prob)])
             # energies = sum([e*cumu_powers[k] for k, e in enumerate(prob)])/(1.0-tmp_plr)
-            ana_aa.append(energies/m**4)
+            ana_aa.append(energies)
 
     return ana_intensity, ana_plr, ana_thrpt, ana_aa
 
