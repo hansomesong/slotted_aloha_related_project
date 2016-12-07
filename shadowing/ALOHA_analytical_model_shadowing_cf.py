@@ -204,10 +204,10 @@ if __name__ == "__main__":
     P = np.zeros(MAX_TRANS)
     P[0] = 1
     # 注意： 这里 门限值一定是 分贝单位
-    THRLD = 3.0
+    THRLD = -3.0
     alpha_start = 0.30
-    l, m = 1, 1
-    alpha_end = 1.05
+    l, m = 2, 1
+    alpha_end = 2.05
     step = 0.005
 
     result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, SIGMA, THRLD, step)
@@ -224,7 +224,7 @@ if __name__ == "__main__":
     # plt.show()
     # print result
     #
-    result_f = "improved_cf_shadowing_analytical_result_threshold={0}dB_l={1}_m={2}_sigma={3}_max_trans={4}.csv".format(THRLD, l, m, SIGMA, MAX_TRANS)
+    result_f = "analytical_result_K={4}_threshold={0}dB_l={1}_m={2}_sigma={3}.csv".format(THRLD, l, m, SIGMA, MAX_TRANS)
 
     with open(result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')

@@ -39,7 +39,7 @@ ANA_DIR = 'analytical'
 SINR_THLD = [3.0, 0.0, -3.0]
 BACKOFF = [36, 36, 36]
 MU_FADING = 0.0
-SIGMA_S = 1.0
+SIGMA_S = 3.0
 LINEWIDTH = 3
 METRICS = ['Packet Loss Rate', 'Throughput', 'Energy Efficiency', 'Expected Nb. of Transmissions']
 # X and Y Range for perfect case

@@ -28,9 +28,9 @@ A_P_IDENTIC = "analytical, $v=1.0$"
 A_P_INCREMENT = "analytical, $v=2.0$"
 A_P_DECREMENT ="analytical, $v=0.5$"
 
-S_P_IDENTIC = "simulation, $v=1.0$,\n$95\%$ confidence \ninterval"
-S_P_INCREMENT = "simulation, $v=2.0$,\n$95\%$ confidence \ninterval"
-S_P_DECREMENT = "simulation, $v=0.5$,\n$95\%$ confidence \ninterval"
+S_P_IDENTIC = "simulation, $v=1.0$, $95\%$ confidence interval"
+S_P_INCREMENT = "simulation, $v=2.0$, $95\%$ confidence interval"
+S_P_DECREMENT = "simulation, $v=0.5$, $95\%$ confidence interval"
 
 MAX_TRANS = 5
 LOG_DIR = 'logs'
@@ -222,15 +222,16 @@ for ax, col in zip(axes, cols):
 
 # Separately place legend into two sub-figures.
 handles, labels = axes[0].get_legend_handles_labels()
-axes[0].legend(handles[0:3:1], labels[0:3:1], loc='best', numpoints=1, fancybox=True, framealpha=0.5)
-
-handles, labels = axes[1].get_legend_handles_labels()
-axes[1].legend(handles[3:4:1], labels[3:4:1], loc='lower right', numpoints=1, fancybox=True, framealpha=0.5)
-
-handles, labels = axes[2].get_legend_handles_labels()
-axes[2].legend(handles[4::1], labels[4::1], loc='best', numpoints=1, fancybox=True, framealpha=0.5)
-
+# axes[0].legend(handles[0:3:1], labels[0:3:1], loc='best', numpoints=1, fancybox=True, framealpha=0.5)
+#
+# handles, labels = axes[1].get_legend_handles_labels()
+# axes[1].legend(handles[3:4:1], labels[3:4:1], loc='lower right', numpoints=1, fancybox=True, framealpha=0.5)
+#
+# handles, labels = axes[2].get_legend_handles_labels()
+# axes[2].legend(handles[4::1], labels[4::1], loc='best', numpoints=1, fancybox=True, framealpha=0.5)
+ordered_handles = [handles[0], handles[3], handles[1], handles[4], handles[2], handles[5]]
+ordered_lables = [labels[0], labels[3], labels[1], labels[4], labels[2], labels[5]]
 plt.subplots_adjust(wspace=0.06, hspace=0.02)
-# plt.legend(bbox_to_anchor=(0.12, -0.04, 0.79, 1), loc=8, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
+plt.legend(ordered_handles, ordered_lables, bbox_to_anchor=(0.12, -0.14, 0.79, 1), loc=8, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
 plt.savefig(os.path.join("figures", FIG_NAME), format='eps', dpi=300, bbox_inches='tight', transparent=True)
 # plt.show()
