@@ -32,14 +32,16 @@ def listener(sim_result_f, q):
 # In our process pool, except the one in charge of writing records into CSV file, all rest processes are used
 # to treat log file stored in a certain directory. Every time a process processes a log file, it store the retrieved
 # information into a QUEUE data structure, which will be served by listener process.
-def worker(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing, q):
+def worker(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing, width, intensity_bs, path_loss, q):
     csv_row = []
-    sim_result = run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing)
+    sim_result = run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing, width, intensity_bs, path_loss)
     csv_row.extend(sim_result[2])
     csv_row.append(alpha)
     q.put(csv_row)
 
-def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing, sigma_shadowing, output_statistics=False):
+def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing,
+                   sigma_shadowing, width, intensity_bs, path_loss, output_statistics=False
+    ):
     '''
         In this method, during the backoff slot, it is possible to generate and transmit new packets.
         Only the packets generated during the slot scheduled for retransmission will be abandoned.
@@ -65,10 +67,32 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     # BACK_OFFS = [backoff*np.power(2, i) for i in range(max_trans)]
     # BACK_OFFS = [8, 30, 60, 100]
     BACK_OFFS = [backoff for i in range(max_trans)]
-    # The involved device number will be determined together by binomial probability and alpha
-    # The involved device number should be not less than 400.
-    # The probability p in binomial distribution should less than 0.01 to assure that binomial distribution is close to poisson distribution
-    device_nb = int(alpha/binomial_p)
+    # The involved device number will be one sampling from a PPP with mean alpha*planar_square_area_surface
+    # Generate the needed device nb in this simulation
+    device_nb = np.random.poisson(alpha*np.power(width, 2), 1)
+    # calculate the needed base stations in this simulation
+    bs_nb = np.random.poisson(intensity_bs*np.power(width, 2), 1)
+    # Uniformelly distribute devices and base stations in the limited plannar.
+    device_x_array = np.random.uniform(-width/2.0, width/2.0, device_nb)
+    device_y_array = np.random.uniform(-width/2.0, width/2.0, device_nb)
+    bs_x_array = np.random.uniform(-width/2.0, width/2.0, bs_nb)
+    bs_y_array = np.random.uniform(-width/2.0, width/2.0, bs_nb)
+    coordinates_devices_array = zip(device_x_array, device_y_array)
+    coordinates_bs_array = zip(bs_x_array, bs_y_array)
+
+    # Generate path-loss matrix
+    # For example, if we have 3 Base stations, N devices
+    # path_loss_matrix =[
+    #   [1, 1, 1, ..., 1]
+    #   [1, 1, 1, ..., 1]
+    #   [1, 1, 1, ..., 1]
+    # ]
+    path_loss_matrix = np.ones((bs_nb, device_nb))
+    for index, line in enumerate(path_loss_matrix):
+        current_bs_coordinate = coordinates_bs_array[index]
+        path_loss_matrix[index] = np.array([np.power(np.sqrt(np.power(coordinate[0]-current_bs_coordinate[0], 2)+ np.power(coordinate[1]-current_bs_coordinate[1], 2)), -1.0*path_loss)
+                 for coordinate in coordinates_devices_array])
+
 
     # Now Add one zero in the beginning of LM list, to facilitate the generation of
     # Then each element in LM list represents the transmit power for the kth transmission (Not retransmission).
@@ -88,31 +112,45 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
         )
         # With which receive power they can sue?
         rec_power_levels = np.array([LM[int(k)] for k in sim_history[slot, :, 0]])
+        rec_power_levels = np.tile(rec_power_levels, (bs_nb, 1))
+        # print rec_power_levels.shape
         # 如果 shadowing 的方差不是0，那么生成一系列 log-normal 随机数，否则生成同等长度的1
         if sigma_shadowing > 0:
-            shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, device_nb)
+            shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_shadowing, size=(bs_nb, device_nb))
         else:
-            shadowings = np.ones(device_nb)
+            shadowings = np.ones((bs_nb, device_nb))
 
         if mu_fading > 0:
-            fadings = np.random.exponential(scale=mu_fading, size=device_nb)
+            fadings = np.random.exponential(scale=mu_fading, size=(bs_nb, device_nb))
         else:
-            fadings = np.ones(device_nb)
-
-        # With impact of factors such as fading and power control error
-        rec_power_levels *= fadings*shadowings
+            fadings = np.ones((bs_nb, device_nb))
 
         # 将每个slot，每个设备消耗的能量，存进 energy_history. 我们假设整个slot都以恒定的功率传输数据(不知道这个假设效果如何)
         for device_id, trans_index in enumerate(sim_history[slot, :, 0]):
-            sim_history[slot, device_id, int(trans_index)] = rec_power_levels[device_id]
+            sim_history[slot, device_id, int(trans_index)] = rec_power_levels[0, device_id]
 
-        total_p = sum(rec_power_levels)
-        # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
-        # (计算实际接收信噪比的思路会不可避免地考虑信道中只有一个传输的情况，导致程序的执行效率低下)
-        curr_trans_results = [
-            (total_p - rec_power_levels[device_id])/rec_power_levels[device_id] > 1.0/(10**(0.1*threshold))
-            if k != 0 else False for device_id, k in enumerate(sim_history[slot, :, 0])
-        ]
+        # With impact of factors such as fading and power control error
+        # Also take into account the path loss
+        # Actually rec_power_levels is a bs_nb X device_nb matrix
+        # print rec_power_levels.shape, fadings.shape, path_loss_matrix.shape, shadowings.shape
+        rec_power_levels *= fadings*shadowings*path_loss_matrix
+
+        # Initialize a vector of length $device_nb$ False for transmission state of current slot.
+        # If the element is True, means the transmission of corresponding device is failed. Need retransmission or drop
+        # If the element is False, means no message to transmit or successful transmission
+        # This vector will be executed "and" operation with each base station associated transmission state vector
+        # If one transmission state is "False", even others are all True,
+        # then this message is received by some BS with success. Not need retransmission
+        curr_trans_results = np.array([True for i in range(device_nb)], dtype=bool)
+
+        for each_base in rec_power_levels:
+            each_base_total_p = sum(each_base)
+            # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
+            # (计算实际接收信噪比的思路会不可避免地考虑信道中只有一个传输的情况，导致程序的执行效率低下)
+            each_bs_transmission_result = [
+            (each_base_total_p - each_base[device_id])/each_base[device_id] > 1.0/(10**(0.1*threshold))
+            if k != 0 else False for device_id, k in enumerate(sim_history[slot, :, 0])]
+            curr_trans_results = curr_trans_results & each_bs_transmission_result
 
         # print curr_trans_results
         for device_id, curr_trans_result in enumerate(curr_trans_results):
@@ -219,19 +257,24 @@ def main(sim_config_dict, logs_directory):
     MU_FADING = sim_config_dict['MU_FADING']
     MU_SHADOWING = sim_config_dict['MU_SHADOWING']
     SIGMA_SHADOWING = sim_config_dict['SIGMA_SHADOWING']
+
+    WIDTH = sim_config_dict["WIDTH"]
+    INTENSITY_BS = sim_config_dict["INTENSITY_BS"]
+    PATH_LOSS = sim_config_dict['PATH_LOSS']
+
     # 针对每个 alpha 值，仿真重复次数
     SIM_REPEAT_NB = sim_config_dict['SIM_REPEAT_NB']
     ALPHAS = [ALPHA for i in range(SIM_REPEAT_NB)]
-    DEVICE_NB = int(ALPHA/BINOMIAL_P)
+    # DEVICE_NB = int(ALPHA/BINOMIAL_P)
     # 将仿真结果存储在 sim_result_f 指向的文件中
     sim_result_f = os.path.join(
         logs_directory,
-        "simd={0}_warm={1}_maxtrans={2}_N={3}_threshold={4}dB_l={5}_m={6}_backoff={7}_alpha={8}_mufading={9}_mushadowing={10}_sigmashadowing={11}_tmp={12}.csv".
+        "simd={0}_warm={1}_maxtrans={2}_bsintensity={3}_threshold={4}dB_l={5}_m={6}_backoff={7}_alpha={8}_mufading={9}_mushadowing={10}_sigmashadowing={11}_tmp={12}.csv".
         format(
             SIM_DURATION,
             WARM_T,
             MAX_TRANS,
-            DEVICE_NB,
+            INTENSITY_BS,
             THERSHOLD,
             L,
             M,
@@ -246,7 +289,7 @@ def main(sim_config_dict, logs_directory):
 
     manager = mp.Manager()
     q = manager.Queue()
-    pool = mp.Pool(mp.cpu_count()+3)
+    pool = mp.Pool(mp.cpu_count()+2)
 
     f_handler = open(sim_result_f, 'w')
 
@@ -259,7 +302,7 @@ def main(sim_config_dict, logs_directory):
     for alpha in ALPHAS:
         job = pool.apply_async(
             worker,
-            (alpha, MAX_TRANS, BINOMIAL_P, THERSHOLD, L, M, BACKOFF, SIM_DURATION, WARM_T, MU_FADING, MU_SHADOWING, SIGMA_SHADOWING, q)
+            (alpha, MAX_TRANS, BINOMIAL_P, THERSHOLD, L, M, BACKOFF, SIM_DURATION, WARM_T, MU_FADING, MU_SHADOWING, SIGMA_SHADOWING, WIDTH, INTENSITY_BS, PATH_LOSS, q)
         )
         jobs.append(job)
 
@@ -278,10 +321,10 @@ if __name__ == "__main__":
     logs_directory = 'logs'
     SIM_CONFIG_DIR = 'sim_configs'
     # SIM_PART = 'fading_shadowing'
-    SIM_PART = 'shadowing'
+    SIM_PART = 'fading'
     # SIM_PART = 'perfect'
 
-    SIM_CONFIG_FILE = 'case_K=5_l=1_m=1_threshold=3dB.json'
+    SIM_CONFIG_FILE = 'case_K=1_l=1_m=1_threshold=3dB.json'
     # The simulation result will be logged into files of type CSV, in folder logs.
     # First check the existence of this folder and creat it if necessary.
     if not os.path.exists(logs_directory):
@@ -309,6 +352,9 @@ if __name__ == "__main__":
     sim_config_dict["SIM_REPEAT_NB"] = json_config['SIM_REPEAT_NB']
     sim_config_dict["SIM_INCRE_STEP"] = json_config['SIM_INCRE_STEP']
     sim_config_dict["BINOMIAL_P"] = json_config["BINOMIAL_P"]
+    sim_config_dict["INTENSITY_BS"] = json_config["INTENSITY_BS"]
+    sim_config_dict["WIDTH"] = json_config["WIDTH"]
+    sim_config_dict["PATH_LOSS"] = json_config["PATH_LOSS"]
 
     ALPHA_START = json_config['ALPHA_START']
     ALPHA_END = json_config['ALPHA_END']
