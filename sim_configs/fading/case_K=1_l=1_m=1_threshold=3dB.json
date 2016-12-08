@@ -5,7 +5,7 @@
 "THRESLD":      3.0,
 "ALPHA_START":  0.55,
 "ALPHA_END":    0.95001,
-"INTENSITY_BS": 0.01,
+"INTENSITY_BS": 0.00000001,
 "ana_step":     0.005,
 "DELTA":        0.0000001,
 "WARM_UP":      10,

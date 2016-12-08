@@ -71,9 +71,10 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     BACK_OFFS = [backoff for i in range(max_trans)]
     # The involved device number will be one sampling from a PPP with mean alpha*planar_square_area_surface
     # Generate the needed device nb in this simulation
-    device_nb = np.random.poisson(alpha*np.power(width, 2), 1)
+    device_nb = int(np.random.poisson(alpha*np.power(width, 2), 1))
     # calculate the needed base stations in this simulation
-    bs_nb = np.random.poisson(intensity_bs*np.power(width, 2), 1)
+    bs_nb = int(np.random.poisson(intensity_bs*np.power(width, 2), 1))
+
     # Uniformelly distribute devices and base stations in the limited plannar.
     device_x_array = np.random.uniform(-width/2.0, width/2.0, device_nb)
     device_y_array = np.random.uniform(-width/2.0, width/2.0, device_nb)
