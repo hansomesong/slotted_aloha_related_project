@@ -57,7 +57,9 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     start_t = int(time())
     # Generate the random number generator seed, make sure each process uses a different seed otherwise
     # the simulation result will be the same when multiple processes run the this method.
-    seed = hash((start_t + os.getpid()*13)*0.0000001)
+    # seed = hash((start_t + os.getpid()*13)*0.0000001)
+    # The accepted random seed is between 0 and 4294967295. Thus do a modulo operation after getting hash number
+    seed = hash(hash(os.urandom(os.getpid()))) % 4294967295
     # seed = 2160133643
     # seed = 1792749438
     # seed = 2954458010
