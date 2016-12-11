@@ -70,18 +70,19 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     # BACK_OFFS = [8, 30, 60, 100]
     BACK_OFFS = [backoff for i in range(max_trans)]
     # The involved device number will be one sampling from a PPP with mean alpha*planar_square_area_surface
-    # Generate the needed device nb in this simulation
-    device_nb = int(np.random.poisson(alpha*np.power(width, 2), 1))
-    # calculate the needed base stations in this simulation
-    bs_nb = int(np.random.poisson(intensity_bs*np.power(width, 2), 1))
-
-    # Uniformelly distribute devices and base stations in the limited plannar.
-    device_x_array = np.random.uniform(-width/2.0, width/2.0, device_nb)
-    device_y_array = np.random.uniform(-width/2.0, width/2.0, device_nb)
-    bs_x_array = np.random.uniform(-width/2.0, width/2.0, bs_nb)
-    bs_y_array = np.random.uniform(-width/2.0, width/2.0, bs_nb)
-    coordinates_devices_array = zip(device_x_array, device_y_array)
-    coordinates_bs_array = zip(bs_x_array, bs_y_array)
+    # The involved device number will be one sample from a spatial PPP over a finit disk area
+    # Generate the needed device nb and base station in this simulation
+    AREA_SURFACE = np.pi*np.power(width, 2)
+    device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))
+    # Should ensure always at least one BS.
+    bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)
+    # Uniformelly distribute devices and base stations using polar coordinates
+    device_rho = width*np.sqrt(np.random.uniform(0, 1, device_nb))
+    device_arguments = np.random.uniform(-np.pi-10e-4, np.pi+10e-4, device_nb)
+    coordinates_devices_array = zip(device_rho, device_arguments)
+    bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
+    bs_arguments = np.random.uniform(-np.pi-10e-4, np.pi+10e-4, bs_nb)
+    coordinates_bs_array = zip(bs_rho, bs_arguments)
 
     # Generate path-loss matrix
     # For example, if we have 3 Base stations, N devices
@@ -92,11 +93,10 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     # ]
     path_loss_matrix = np.ones((bs_nb, device_nb))
     for index, line in enumerate(path_loss_matrix):
-        current_bs_coordinate = coordinates_bs_array[index]
-        path_loss_matrix[index] = np.array([np.power(np.sqrt(np.power(coordinate[0]-current_bs_coordinate[0], 2)+ np.power(coordinate[1]-current_bs_coordinate[1], 2)), -1.0*path_loss)
+        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+        path_loss_matrix[index] = np.array([np.power(np.sqrt(coordinate[0]**2+curr_bs_rho**2-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)), -1.0*path_loss)
                  for coordinate in coordinates_devices_array])
-
-
+    print bs_nb, device_nb
     # Now Add one zero in the beginning of LM list, to facilitate the generation of
     # Then each element in LM list represents the transmit power for the kth transmission (Not retransmission).
     # For example, if max_trans = 5, l=2, m=1, then
@@ -155,7 +155,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
             if k != 0 else False for device_id, k in enumerate(sim_history[slot, :, 0])]
             curr_trans_results = curr_trans_results & each_bs_transmission_result
 
-        # print curr_trans_results
+        # Iterate curr_trans_results to proceed retransmission...
         for device_id, curr_trans_result in enumerate(curr_trans_results):
             # 如果 curr_trans_result = True，则需要对这个包执行重传操作
             if curr_trans_result:
@@ -190,14 +190,16 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
                     # The case where max_trans has been reached. Failure of this packet transmission
                     sim_history[slot, device_id, 0] = max_trans + 1
 
+    # Before the statistics, remove the statistics in the border area.
+    accepted_device_index = np.array([1.0 if coordinate[0] <= width/2.0 else 0.0 for coordinate in coordinates_devices_array])
+    trans_index_array = sim_history[warm_t:sim_duration, :, 0]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
     # To convert the type of an array, use the .astype() method (preferred) or the type itself as a function.
     # For example: z.astype(float)
-    trans_index_array = sim_history[warm_t:sim_duration, :, 0].reshape(device_nb*(sim_duration-warm_t))
+    trans_index_array = trans_index_array.reshape(device_nb*(sim_duration-warm_t))
     trans_index_array = trans_index_array.astype(int)
     # print "trans_index_array", [e for e in trans_index_array if e != 0]
     # 统计第 i 次传输出现的次数，并据此计算至少需要传输 i 次的频数，如果实验足够长，频数将趋近于概率
     statistics = [[x, 0] for x in range(1, max_trans+2, 1)]
-
     for entry_1 in itemfreq(trans_index_array)[1:]:
         statistics[entry_1[0]-1][1] = entry_1[1]
 
