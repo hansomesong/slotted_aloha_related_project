@@ -39,6 +39,22 @@ def worker(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration,
     csv_row.append(alpha)
     q.put(csv_row)
 
+# This function will be vectorized by Numpy in the corp of function run_simluation(**)
+# and run on a matrix where the value in each cell is the square of distance
+# That's why, we multiply 0.5 with input path loss exponent.
+def path_loss_law(dist_square, path_loss_exponent):
+    return np.power(dist_square, -0.5*path_loss_exponent)
+
+def calculate_sinr(rec_power_vector, threshold, curr_slot_trans_index):
+    # curr_slot_trans_index = sim_history[slot, :, 0]
+    # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
+    # (计算实际接收信噪比的思路会不可避免地考虑信道中只有一个传输的情况，导致程序的执行效率低下)
+    total_p = np.sum(rec_power_vector)
+    trans_state_result = [
+        (total_p - rec_power_vector[d_id]) / rec_power_vector[d_id] > 1.0 / (10 ** (0.1 * threshold))
+        if k != 0 else False for d_id, k in enumerate(curr_slot_trans_index)]
+    return trans_state_result
+
 def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing,
                    sigma_shadowing, width, intensity_bs, path_loss, output_statistics=False
     ):
@@ -91,12 +107,33 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     #   [1, 1, 1, ..., 1]
     #   [1, 1, 1, ..., 1]
     # ]
-    path_loss_matrix = np.ones((bs_nb, device_nb))
-    for index, line in enumerate(path_loss_matrix):
+
+
+    # path_loss_matrix = np.ones((bs_nb, device_nb))
+    # for index, line in enumerate(path_loss_matrix):
+    #     curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+    #     path_loss_matrix[index] = np.array([np.power(np.sqrt(coordinate[0]**2+curr_bs_rho**2-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)), -1.0*path_loss)
+    #              for coordinate in coordinates_devices_array])
+    # print bs_nb, device_nb
+
+    # An intermediare data structure for the device-to-base_station distance.
+    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
+    for index, line in enumerate(d2bs_dist_matrix):
         curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
-        path_loss_matrix[index] = np.array([np.power(np.sqrt(coordinate[0]**2+curr_bs_rho**2-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)), -1.0*path_loss)
+        # The value is the square of actual distance, whatever, just for selection of nearest BS
+        d2bs_dist_matrix[index] = np.array(
+            [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
                  for coordinate in coordinates_devices_array])
     print bs_nb, device_nb
+
+    # Return the indices of min in each row, which refers to, in this case, the indice of base station.
+    # axis=0 => count from left to right, axis=1 => count from top to down
+    # Allocate the nearest base station
+    device_base_table = d2bs_dist_matrix.argmin(axis=0)
+    # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
+    vectorized_path_loss_f = np.vectorize(path_loss_law)
+    path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
+
     # Now Add one zero in the beginning of LM list, to facilitate the generation of
     # Then each element in LM list represents the transmit power for the kth transmission (Not retransmission).
     # For example, if max_trans = 5, l=2, m=1, then
@@ -106,6 +143,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
     # sim_history now is 3-d array.
     # The third dimension is used to represent the transmission index and received power levels history
     sim_history = np.zeros((sim_duration, device_nb, max_trans+1), dtype=np.float)
+
     for slot in range(sim_duration):
         # First generate new packets.
         # Which device has packets to transmit?
@@ -144,16 +182,19 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
         # This vector will be executed "and" operation with each base station associated transmission state vector
         # If one transmission state is "False", even others are all True,
         # then this message is received by some BS with success. Not need retransmission
-        curr_trans_results = np.array([True for i in range(device_nb)], dtype=bool)
+        # curr_trans_results = np.array([True for i in range(device_nb)], dtype=bool)
+        # for each_base in rec_power_levels:
+        #     each_base_total_p = sum(each_base)
+        #     # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
+        #     # (计算实际接收信噪比的思路会不可避免地考虑信道中只有一个传输的情况，导致程序的执行效率低下)
+        #     each_bs_transmission_result = [
+        #     (each_base_total_p - each_base[device_id])/each_base[device_id] > 1.0/(10**(0.1*threshold))
+        #     if k != 0 else False for device_id, k in enumerate(sim_history[slot, :, 0])]
+        #     curr_trans_results = curr_trans_results & each_bs_transmission_result
 
-        for each_base in rec_power_levels:
-            each_base_total_p = sum(each_base)
-            # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
-            # (计算实际接收信噪比的思路会不可避免地考虑信道中只有一个传输的情况，导致程序的执行效率低下)
-            each_bs_transmission_result = [
-            (each_base_total_p - each_base[device_id])/each_base[device_id] > 1.0/(10**(0.1*threshold))
-            if k != 0 else False for device_id, k in enumerate(sim_history[slot, :, 0])]
-            curr_trans_results = curr_trans_results & each_bs_transmission_result
+        curr_trans_matrix = np.apply_along_axis(calculate_sinr, 1, rec_power_levels, threshold, sim_history[slot, :, 0])
+        # The nearest-base-station approache
+        curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
 
         # Iterate curr_trans_results to proceed retransmission...
         for device_id, curr_trans_result in enumerate(curr_trans_results):
