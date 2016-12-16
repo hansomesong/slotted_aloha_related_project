@@ -96,6 +96,12 @@ def process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans,
                 sim_history[slot, device_id, 0] = max_trans + 1
 
 
+def is_retransmited(a):
+    result = True
+    for state in a:
+        result = result and state
+    return result
+
 def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_duration, warm_t, mu_fading, mu_shadowing,
                    sigma_shadowing, width, intensity_bs, path_loss, output_statistics=False
     ):
@@ -185,13 +191,8 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
             # curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
 
             # The fire-and-forget approach
-            def is_retransmited(a):
-                result = True
-                for state in a:
-                    result = result and state
-                return result
-
             curr_trans_results = np.apply_along_axis(is_retransmited, 0, curr_trans_matrix)
+
             # Iterate curr_trans_results to proceed retransmission...
             process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans, sim_duration, BACK_OFFS)
             # print rec_power_levels
@@ -200,6 +201,7 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
             # print sim_history[slot, :, 0]
 
     elif mu_fading > 0 and sigma_shadowing > 0:
+        print "in fading and shadowing case..."
         for slot in range(sim_duration):
             # First generate new packets. k refers to the k th transmision instead of retransmission
             sim_history[slot, :, 0] = np.array(
@@ -220,15 +222,17 @@ def run_simulation(alpha, max_trans, binomial_p, threshold, l, m, backoff, sim_d
 
             curr_trans_matrix = np.apply_along_axis(calculate_sinr, 1, rec_power_levels, threshold, sim_history[slot, :, 0])
             # The nearest-base-station approache
-            curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
+            # curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
 
+            # The fire-and-forget approach
+            curr_trans_results = np.apply_along_axis(is_retransmited, 0, curr_trans_matrix)
             # Iterate curr_trans_results to proceed retransmission...
             process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans, sim_duration, BACK_OFFS)
 
     # Simulation finished here. Now do statistics work.
     # Before the statistics, remove the statistics in the border area.
     # The following can be grouped into a separate function
-    accepted_device_index = np.array([1.0 if coordinate[0] <= width/2.0 else 0.0 for coordinate in coordinates_devices_array])
+    accepted_device_index = np.array([1.0 if coordinate[0] <= width*1.0 else 0.0 for coordinate in coordinates_devices_array])
     trans_index_array = sim_history[warm_t:sim_duration, :, 0]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
     # print sim_history[warm_t:sim_duration, :, 0]
     # print coordinates_devices_array
