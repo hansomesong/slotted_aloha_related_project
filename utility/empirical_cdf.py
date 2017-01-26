@@ -9,8 +9,11 @@ import numpy as np
 import matplotlib.ticker as ticker
 import numpy as np
 import scipy.stats as st
+import scipy.special as special
 import pandas as pd
 import glob
+from statsmodels.distributions.empirical_distribution import ECDF
+
 
 from shadowing.ALOHA_analytical_model_shadowing_cf import *
 
@@ -51,47 +54,40 @@ ax = fig.add_subplot(111)    # The big subplot
 # ax1 = fig.add_subplot(211)
 # ax2 = fig.add_subplot(212)
 
-empirical_cdf = "model_validation/empirical_cdf_1.12.csv"
-
-ana_file = "/Users/qsong/Documents/slotted_aloha_related_project/imperfect_power_control/case_-3dB/improved_cf_shadowing_analytical_result_threshold=-3.0dB_l=1_m=1_sigma=1.csv"
-
-x_axis = np.arange(0.0, 6.0, 0.02)
-
-with open(empirical_cdf, 'r') as f_handler:
-    ana_csv = list(csv.reader(f_handler))
-    for k, csv_line in enumerate(ana_csv):
-        ax.plot(x_axis, csv_line, label="Empirical CDF for {0}th retransmission".format(k))
-        print csv_line
-
-
-sim_file = "/Users/qsong/Documents/slotted_aloha_related_project/model_validation/simd=50000_warm=5000_maxtrans=5_N=1120_threshold=-3.0dB_l=1_m=1_backoff=36_alpha=1.12_mufading=0.0_mushadowing=0_sigmashadowing=1.0_tmp=20160912143101.csv"
-P = []
-# with open(sim_file, 'r') as f_handler:
-#     sim_csv = list(csv.reader(f_handler))
-#     P = np.array([float(x) for x in csv_line[0:-2]])
-# print "P vector:", P
-
-alpha_start = 1.12
-SIGMA = 1.0
-# with open(ana_file, 'r') as f_handler:
-#     ana_csv = list(csv.reader(f_handler))
-#     for csv_line in ana_csv:
-#         if abs(float(csv_line[-1])- alpha_start) < 0.00001:
-#             P = np.array([float(x) for x in csv_line[0:-2]])
-#             print "P vector:", P
-
-# P = np.array([1.0, 0.80089337048339304, 0.64729556410596611, 0.53005174472601835, 0.44177612666401311, 0.36937773649993366])
-# P = np.array([1.0, 0.63265997290620768, 0.43505458602279068, 0.31922862379472466, 0.24539803968443702, 0.19425850665391664])
-
-P = np.array([1.0, 0.57081199850901454, 0.3367861416828517, 0.20414729366527376, 0.1264198693425931])
-x_axis = np.arange(0+0.000000000000000000000000001, 6.0, 0.02)
-x_axis_2 = np.array([-10.0*np.log10(x) for x in x_axis])
-y = [1-trans_failure_p_2(x, P, alpha_start, 1, 0, SIGMA) for x in x_axis_2]
-print 1-trans_failure_p_2(-3.0, P, alpha_start, 1, 0, SIGMA)
+empirical_cdf = "/Users/qsong/Documents/slotted_aloha_related_project/0.6_1062623330.txt"
+traces_paths= \
+    [
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_338114394.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_1529364351.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_1572178799.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_1620260940.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_1639001807.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_3483984372.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_3605257699.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_3968231334.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_4044882016.txt",
+    "/Users/qsong/Documents/slotted_aloha_related_project/0.6_4221010738.txt"
+    ]
 
 
-ax.legend(loc='best', numpoints=2)
-plt.plot(x_axis, y)
+x_axis = np.linspace(0, 0.005, 1000)
+
+for empirical_cdf in traces_paths:
+    with open(empirical_cdf, 'r') as f_handler:
+        ana_csv = list(csv.reader(f_handler))
+        for csv_line in ana_csv:
+            ecdf = ECDF([float(x) for x in csv_line])
+            print csv_line
+            print ecdf(x_axis)
+            ax.plot(x_axis, ecdf(x_axis))
+
+
+alpah = 0.6
+p = 0.002
+y = 1 - special.erf(np.pi**2*alpah*p/(4*np.sqrt(x_axis)))
+print y
+
+ax.plot(x_axis, y, 'r', marker="*")
 # # Turn off axis lines and ticks of the big subplot
 # ax.spines['top'].set_color('none')
 # ax.spines['bottom'].set_color('none')
