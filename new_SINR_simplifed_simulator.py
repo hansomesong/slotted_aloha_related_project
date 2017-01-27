@@ -9,29 +9,31 @@ import csv
 import os
 import json
 from time import strftime
-import glob
-import pprint
+import pandas as pd
 from scipy.stats import itemfreq
 
 # One process for writing an entry(a row in the context of CSV file) into the given CSV file.
 # The advantage is to avoid the concurrence about the write access to target CSV file.
 def listener(sim_result_f, q):
-    with open(sim_result_f, 'a') as csvfile:
-        spamwriter = csv.writer(csvfile, delimiter=',')
-        while 1:
-            csv_row = q.get()
+    # 经过一晚上的奋战，终于找到BUG所在了！！！
+    while 1:
+            df_row = q.get()
             # 如果从 (被N多个进程共享的) result queue 中提取到了 字符串 ‘TERMINATE’，那么结束listener进程
-            if csv_row == "TERMINATE":
+            # 注意：无法直接比较对象df_row和"TERMINATE"，会抛出异常退出的！而没有try-catch结构，主进程(本脚本)无法知道异常出现
+            if isinstance(df_row, str):
+                # if the obtained object from Queue is of type str. prepare to terminate this process.
+                # stats_df = pd.read_csv(sim_result_f).sort_index()
+                # # overwrite initial csv content with sorted statistics
+                # stats_df.to_csv(sim_result_f, mode='w', header=False)
                 break
-            spamwriter.writerow(csv_row)
+            # I think, within to_csv method, there exists some file open/close operation!!
+            # No need to explicitly do open/close operations.
+            df_row.to_csv(sim_result_f, mode='a', header=False)
 
 # All processes other than listener are used to run a simulation
 def worker(sim_settings, q):
-    csv_row = []
     sim_result = run_simulation(sim_settings)
-    csv_row.extend(sim_result[2])
-    csv_row.append(sim_settings["ALPHA"])
-    q.put(csv_row)
+    q.put(sim_result)
 
 # This function will be vectorized by Numpy in the corp of function run_simluation(**)
 # and run on a matrix where the value in each cell is the square of distance
@@ -188,7 +190,6 @@ def run_simulation(sim_config_dict):
     # sim_history now is 3-d array.
     # The third dimension is used to represent the transmission index and received power levels history
     sim_history = np.zeros((sim_duration, device_nb, max_trans+1), dtype=np.float)
-
     for slot in range(sim_duration):
         # First generate new packets. k refers to the k th transmision instead of retransmission
         sim_history[slot, :, 0] = np.array(
@@ -222,66 +223,77 @@ def run_simulation(sim_config_dict):
         process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans, sim_duration, BACK_OFFS)
 
     # Simulation finished here. Now do statistics work.
-    # Before the statistics, remove the statistics in the border area.
-    # The following can be grouped into a separate function
-    accepted_device_index = np.array([1.0 if coordinate[0] <= width*0.9 else 0.0 for coordinate in coordinates_devices_array])
-    trans_index_array = sim_history[warm_t:sim_duration, :, 0]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
-    # print sim_history[warm_t:sim_duration, :, 0]
-    # print coordinates_devices_array
-    # print coordinates_bs_array, "BS"
-    # print "seleted: ", np.tile(accepted_device_index, (sim_duration-warm_t, 1))
-    # To convert the type of an array, use the .astype() method (preferred) or the type itself as a function.
-    # For example: z.astype(float)
-    trans_index_array = trans_index_array.reshape(device_nb*(sim_duration-warm_t))
-    trans_index_array = trans_index_array.astype(int)
-    # print "trans_index_array", [e for e in trans_index_array if e != 0]
-    # 统计第 i 次传输出现的次数，并据此计算至少需要传输 i 次的频数，如果实验足够长，频数将趋近于概率
-    statistics = [[x, 0] for x in range(1, max_trans+2, 1)]
-    for entry_1 in itemfreq(trans_index_array)[1:]:
-        statistics[entry_1[0]-1][1] = entry_1[1]
-
-    # print "statistics", statistics
-    # Convert all received power level history into a one dimension array and calculate the total consumed energies
-    total_energies = sum(sim_history[warm_t:sim_duration, :, 1:].reshape(max_trans*device_nb*(sim_duration-warm_t)))
-    # 发现了两个bug: 一个是在处理failed packet的时候，错误地把所有的received power level 之和弄成了30
-    # 第二个bug是，程序之前并没有处理过simulation的最后一个slot, 结果统计的时候却把这一行尚处于buffered状态的packets都按成功处理了。。。
-    # (修改之后 packet loss rate 最后应该会提高一些。。。)
-    # for element in sim_history[warm_t:sim_duration]:
-    #     print [(hha[0], sum(hha[1:])) for hha in element]
-    # print sim_history[warm_t:sim_duration, :, :]
-    statistics_vector = [e[1] for e in statistics]
-
-    vector_p = [0 for i in range(max_trans+1)]
-
-    total_transmission = sum(statistics_vector)
-    # The following calculation requires that the last element is always the numerb of failed packets!
-    succ_transmission = sum(statistics_vector[0:-1])
-
-    for element in statistics:
-        ith_trans = element[0]
-        satisfied_trans = sum([element[1] for element in statistics if element[0] >= ith_trans])
-        vector_p[ith_trans - 1] = satisfied_trans*1.0/total_transmission
-
-    # print "total_energies", total_energies
-    # print "succ_transmission", succ_transmission
-
-    energy_efficiency = total_energies/succ_transmission
-    statistics_vector.append(energy_efficiency)
-    # calculate the throughput: amount of packets succesfully delivered per slot
-    statistics_vector.extend(vector_p)
-    # Get end time and calculate elapsed time
+    # with open("{0}_{1}.txt".format(alpha, seed), "w") as f_handler:
+    #     spamwriter = csv.writer(f_handler, delimiter=',')
+    #     spamwriter.writerow(cumu_itf)
+    statistics_vector = sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history)
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
+    print "Time:", int(time_elapsed), "Alpha:", alpha, "Seed:", seed, "Result:"
+    print statistics_vector
+    return statistics_vector
 
-    print "Time:", int(time_elapsed), "Alpha:", alpha, "Seed:", seed, "Result:", statistics_vector
+def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history):
+    # Remove the statistics in the border area. Particularly important for BS reception diversity.
+    width = sim_config_dict["WIDTH"]
+    sim_duration, warm_t = sim_config_dict['SIM_DURATION'], sim_config_dict['WARM_UP']
+    max_trans = sim_config_dict['MAX_TRANS']
+    global_statistics = []
+    stat_percents = sim_config_dict["STAT_PERCENTS"]
+    for stat_percent in stat_percents:
+        accepted_device_index = np.array([1.0 if coordinate[0] <= width*stat_percent else 0.0 for coordinate in coordinates_devices_array])
+        trans_index_array = sim_history[warm_t:sim_duration, :, 0]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
+        # To convert the type of an array, use the .astype() method (preferred) or the type itself as a function.
+        # For example: z.astype(float)
+        trans_index_array = trans_index_array.reshape(device_nb*(sim_duration-warm_t))
+        trans_index_array = trans_index_array.astype(int)
+        # Count the occurrence of transmission trial with index x.
+        # e..g, x=1 refers to the first transmission trial, x=max_trans is the last transmission trial.
+        # All failed transmssion will be with index max_trans+1
+        statistics = [[x, 0] for x in range(1, max_trans+2, 1)]
+        statistics_vector = [sim_config_dict['ALPHA']]
+        item_pairs = itemfreq(trans_index_array)[1:]  # count for items >= 1
+        for trans_index, element in enumerate(statistics):
+            element[1] = item_pairs[trans_index][1]
+        item_counts = [e[1] for e in statistics]
+        vector_p = [0 for i in range(max_trans+1)]
+        statistics_vector.extend(item_counts)
 
-    with open("{0}_{1}.txt".format(alpha, seed), "w") as f_handler:
-        spamwriter = csv.writer(f_handler, delimiter=',')
-        spamwriter.writerow(cumu_itf)
+        total_transmission = sum(item_counts)
+        # The following calculation requires that the last element is always the numeber of failed packets!
+        succ_transmission = sum(item_counts[0:-1])
+        for element in statistics:
+            ith_trans = element[0]
+            satisfied_trans = sum([element[1] for element in statistics if element[0] >= ith_trans])
+            vector_p[ith_trans - 1] = satisfied_trans*1.0/total_transmission
+        statistics_vector.extend(vector_p)
 
-    return alpha, list(statistics), statistics_vector
+        # Convert all received power level history into a one dimension array and calculate the total consumed energies
+        # We iterate max_trans times (i.e., max_trans+1-1) to summarize the consumed energies by devices within
+        # statistical region.
+        # TODO: There must be some way to avoid the following loop...
+        total_energies = 0
+        for i in range(1, max_trans+1):
+            tmp = sim_history[warm_t:sim_duration, :, i]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
+            total_energies += sum(tmp.reshape(device_nb*(sim_duration-warm_t)))
 
+        energy_efficiency = total_energies/succ_transmission
+        statistics_vector.append(energy_efficiency)
+        # calculate the throughput: amount of packets succesfully delivered per slot
+        global_statistics.append(statistics_vector)
 
+    # Create pandas DataFrame with list of list, containing statistics results.
+    df_index = ["{:.1%}".format(element) for element in stat_percents]
+    # df_column = ["{0}nb".format(element+1) for element in range(max_trans+1)]
+    # # Be careful!!! If the element order of statistics_vector changed, do not forget to change the column label order!!!
+    # df_column.append("EE")
+    # # Note that, if MAX_TRANS=2, "2pr" is the column of outage probability.
+    # df_column.extend(["{0}pr".format(element+1) for element in range(max_trans+1)])
+    # df_column.append("ALPHA")
+
+    statistics_df = pd.DataFrame(global_statistics, index=df_index)
+    # print statistics_df
+    return statistics_df
 
 def main(sim_config_dict, logs_directory):
     """
@@ -291,7 +303,8 @@ def main(sim_config_dict, logs_directory):
     """
     # must use Manager queue here, or will not work
     # 注意：一定要使用 Manager queue，否则无法工作，至于原因，我不晓得
-    if sim_config_dict['MAX_TRANS'] == 1:
+    max_trans = sim_config_dict['MAX_TRANS']
+    if max_trans == 1:
         # If one-shot access
         # Some parameters, such as warm time, l, m, back-off time, no need to know...
         output_csv_f_name = \
@@ -307,9 +320,21 @@ def main(sim_config_dict, logs_directory):
 
     manager = mp.Manager()
     q = manager.Queue()
-    pool = mp.Pool(6)
+    # sim_config_dict['"NB_PROCESS"'] at least 2, one producer, one consumer.
+    pool = mp.Pool(sim_config_dict["NB_PROCESS"])
 
-    f_handler = open(sim_result_f, 'w')
+    # Create a csv file from scratch, use Pandas to write an empty DataFrame with columns (no index) into this file.
+    # This should be finished in main processing. Other worker processes just writing data, don't care column label
+    # Thus, make sure that in method sim_result_statistics(), the list has the same order with column label.
+    df_column = ["ALPHA"]
+    df_column.extend(["{0}nb".format(element+1) for element in range(max_trans+1)])
+    df_column.extend(["{0}pr".format(element+1) for element in range(max_trans+1)])
+    # Be careful!!! If the element order of statistics_vector changed, do not forget to change the column label order!!!
+    df_column.append("EE")
+    # Note that, if MAX_TRANS=2, "2pr" is the column of outage probability.
+    df = pd.DataFrame(columns=df_column)
+    with open(sim_result_f, 'w'):
+        df.to_csv(sim_result_f, mode='w')
 
     # put listener to work first
     watcher = pool.apply_async(listener, (sim_result_f, q,))
@@ -332,7 +357,7 @@ def main(sim_config_dict, logs_directory):
     q.put("TERMINATE")
     pool.close()
     # Do not forget to close file at the end.
-    f_handler.close()
+    # f_handler.close()
 
 if __name__ == "__main__":
     START_T= int(time())
