@@ -28,7 +28,7 @@ def listener(sim_result_f, q):
                 break
             # I think, within to_csv method, there exists some file open/close operation!!
             # No need to explicitly do open/close operations.
-            df_row.to_csv(sim_result_f, mode='a', header=False)
+            df_row.to_csv(sim_result_f, mode='a', index=False, header=False)
 
 # All processes other than listener are used to run a simulation
 def worker(sim_settings, q):
@@ -144,7 +144,6 @@ def run_simulation(sim_config_dict):
     sigma_dB += F_EPS
     width, path_loss = sim_config_dict["WIDTH"], sim_config_dict['PATH_LOSS']
 
-
     BETA = np.log(10)/10.0
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
@@ -217,7 +216,7 @@ def run_simulation(sim_config_dict):
         # The fire-and-forget approach
             curr_trans_results = np.apply_along_axis(is_retransmited, 0, curr_trans_matrix)
         else:
-            print "No simulated method is specified (BS_NST_ATT or BS_RX_DIVRES), program exit. Please check you simulation configuration JSON file."
+            print "No simulated method is specified (BS_NST_ATT or BS_RX_DIVERS), program exit. Please check you simulation configuration JSON file."
             exit()
         # Iterate curr_trans_results to proceed retransmission...
         process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans, sim_duration, BACK_OFFS)
@@ -251,7 +250,7 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
         # e..g, x=1 refers to the first transmission trial, x=max_trans is the last transmission trial.
         # All failed transmssion will be with index max_trans+1
         statistics = [[x, 0] for x in range(1, max_trans+2, 1)]
-        statistics_vector = [sim_config_dict['ALPHA']]
+        statistics_vector = [int(stat_percent*100), sim_config_dict['ALPHA']]
         item_pairs = itemfreq(trans_index_array)[1:]  # count for items >= 1
         for trans_index, element in enumerate(statistics):
             element[1] = item_pairs[trans_index][1]
@@ -283,7 +282,7 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
         global_statistics.append(statistics_vector)
 
     # Create pandas DataFrame with list of list, containing statistics results.
-    df_index = ["{:.1%}".format(element) for element in stat_percents]
+    # df_index = ["{:.1%}".format(element) for element in stat_percents]
     # df_column = ["{0}nb".format(element+1) for element in range(max_trans+1)]
     # # Be careful!!! If the element order of statistics_vector changed, do not forget to change the column label order!!!
     # df_column.append("EE")
@@ -291,7 +290,7 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
     # df_column.extend(["{0}pr".format(element+1) for element in range(max_trans+1)])
     # df_column.append("ALPHA")
 
-    statistics_df = pd.DataFrame(global_statistics, index=df_index)
+    statistics_df = pd.DataFrame(global_statistics)
     # print statistics_df
     return statistics_df
 
@@ -323,18 +322,18 @@ def main(sim_config_dict, logs_directory):
     # sim_config_dict['"NB_PROCESS"'] at least 2, one producer, one consumer.
     pool = mp.Pool(sim_config_dict["NB_PROCESS"])
 
-    # Create a csv file from scratch, use Pandas to write an empty DataFrame with columns (no index) into this file.
+    # Create a csv file from scratch, use csv module to write the label of each column into this file.
     # This should be finished in main processing. Other worker processes just writing data, don't care column label
     # Thus, make sure that in method sim_result_statistics(), the list has the same order with column label.
-    df_column = ["ALPHA"]
+    df_column = ["STAT_PERCENT", "ALPHA"]
     df_column.extend(["{0}nb".format(element+1) for element in range(max_trans+1)])
     df_column.extend(["{0}pr".format(element+1) for element in range(max_trans+1)])
     # Be careful!!! If the element order of statistics_vector changed, do not forget to change the column label order!!!
     df_column.append("EE")
     # Note that, if MAX_TRANS=2, "2pr" is the column of outage probability.
-    df = pd.DataFrame(columns=df_column)
-    with open(sim_result_f, 'w'):
-        df.to_csv(sim_result_f, mode='w')
+    with open(sim_result_f, 'w') as f:
+        csv_w = csv.writer(f, delimiter=',')
+        csv_w.writerow(df_column)
 
     # put listener to work first
     watcher = pool.apply_async(listener, (sim_result_f, q,))
