@@ -153,7 +153,6 @@ def run_simulation(sim_config_dict):
     device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))
     # We should have at least one BS
     bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)
-
     # Uniformelly distribute devices and base stations using polar coordinates.
     # We assume that always one device at the origin
     device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
@@ -162,7 +161,6 @@ def run_simulation(sim_config_dict):
     bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
     bs_arguments = np.random.uniform(-np.pi-10e-4, np.pi+10e-4, bs_nb)
     coordinates_bs_array = zip(bs_rho, bs_arguments)
-
     # Save the cumulative interference suffered by device_0 when transmitting message to BS_0
     cumu_itf = []
 
@@ -229,7 +227,7 @@ def run_simulation(sim_config_dict):
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
     print "Time:", int(time_elapsed), "Alpha:", alpha, "Seed:", seed, "Result:"
-    print statistics_vector
+    print statistics_vector.to_string(index=False, header=False)
     return statistics_vector
 
 def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history):
@@ -252,8 +250,10 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
         statistics = [[x, 0] for x in range(1, max_trans+2, 1)]
         statistics_vector = [int(stat_percent*100), sim_config_dict['ALPHA']]
         item_pairs = itemfreq(trans_index_array)[1:]  # count for items >= 1
-        for trans_index, element in enumerate(statistics):
-            element[1] = item_pairs[trans_index][1]
+        # Attention! Must iterate for item_pairs instead of statistics: item_pairs may just contain counts for 0 and 1
+        for trans_index, element in enumerate(item_pairs):
+            statistics[trans_index][1] = element[1]
+
         item_counts = [e[1] for e in statistics]
         vector_p = [0 for i in range(max_trans+1)]
         statistics_vector.extend(item_counts)
@@ -281,17 +281,7 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
         # calculate the throughput: amount of packets succesfully delivered per slot
         global_statistics.append(statistics_vector)
 
-    # Create pandas DataFrame with list of list, containing statistics results.
-    # df_index = ["{:.1%}".format(element) for element in stat_percents]
-    # df_column = ["{0}nb".format(element+1) for element in range(max_trans+1)]
-    # # Be careful!!! If the element order of statistics_vector changed, do not forget to change the column label order!!!
-    # df_column.append("EE")
-    # # Note that, if MAX_TRANS=2, "2pr" is the column of outage probability.
-    # df_column.extend(["{0}pr".format(element+1) for element in range(max_trans+1)])
-    # df_column.append("ALPHA")
-
     statistics_df = pd.DataFrame(global_statistics)
-    # print statistics_df
     return statistics_df
 
 def main(sim_config_dict, logs_directory):
