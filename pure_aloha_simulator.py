@@ -93,36 +93,6 @@ def process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans,
                 # The case where max_trans has been reached. Failure of this packet transmission
                 sim_history[slot, device_id, 0] = max_trans + 1
 
-
-def is_retransmited(a):
-    """
-        This method is uniquely useful for BS reception diversity approach, where just one of BS in the simulation
-        says no need to do retransmission. This method returns a False, which means this transmission is successful.
-    :param a:
-    :return:
-    """
-    """
-    :param a:
-    :return:
-    """
-    result = True
-    for state in a:
-        result = result and state
-    return result
-
-def output_simulation_csv():
-    """
-        This method is used to write the simulation details into a TxT file
-        The format of output file is as follows:
-        #BS #DEVICE #AREA
-        BS_COORDINATES
-        DEVICES_COORAN
-
-        To be finised...
-    """
-    return 0
-
-
 def retransmission():
     pass
 
@@ -149,6 +119,27 @@ def deploy_nodes(width, alpha, intensity_bs):
     coordinates_bs_array = zip(bs_rho, bs_arguments)
     return device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array
 
+def nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss):
+    # An intermediare data structure for the device-to-base_station distance.
+    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
+    for index, line in enumerate(d2bs_dist_matrix):
+        # index => index of BS
+        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+        # The value is the square of actual distance, whatever, just for selection of nearest BS
+        d2bs_dist_matrix[index] = np.array(
+            [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
+                 for coordinate in coordinates_devices_array])
+
+    # Allocate the nearest base station, according to the min of distance of each row
+    device_base_table = d2bs_dist_matrix.argmin(axis=0)
+    # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
+    vectorized_path_loss_f = np.vectorize(path_loss_law)
+    # A maxtrix of size: DEVICE_NB * BS_NB
+    path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
+    path_loss_matrix = np.transpose(path_loss_matrix)
+    return device_base_table, path_loss_matrix
+
+
 def run_simulation(sim_config_dict):
     """
         In this method, during the backoff slot, it is possible to generate and transmit new packets.
@@ -170,29 +161,15 @@ def run_simulation(sim_config_dict):
     mu_fading,  mu_shadowing, sigma_dB = sim_config_dict['MU_FADING'], sim_config_dict['MU_SHADOWING'], sim_config_dict['SIGMA_SHADOWING']
     sigma_dB += F_EPS
     width, path_loss = sim_config_dict["WIDTH"], sim_config_dict['PATH_LOSS']
-
     BETA = np.log(10)/10.0
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
 
     device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, alpha, intensity_bs)
-    # An intermediare data structure for the device-to-base_station distance.
-    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
-    for index, line in enumerate(d2bs_dist_matrix):
-        # index => index of BS
-        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
-        # The value is the square of actual distance, whatever, just for selection of nearest BS
-        d2bs_dist_matrix[index] = np.array(
-            [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
-                 for coordinate in coordinates_devices_array])
+    device_base_table, path_loss_matrix = nodes_location_process(
+        device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss
+    )
 
-    # Allocate the nearest base station, according to the min of distance of each row
-    device_base_table = d2bs_dist_matrix.argmin(axis=0)
-    # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
-    vectorized_path_loss_f = np.vectorize(path_loss_law)
-    # A maxtrix of size: DEVICE_NB * BS_NB
-    path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
-    path_loss_matrix = np.transpose(path_loss_matrix)
     # Now Add one zero in the beginning of LM list, to facilitate the generation of
     # Then each element in LM list represents the transmit power for the kth transmission (Not retransmission).
     # For example: max_trans = 5, l=2, m=1 => LM = [0, 1, 2, 4, 8, 16] The 0th transmission transmit power is 0
@@ -209,7 +186,7 @@ def run_simulation(sim_config_dict):
     # Packet is represented by a 3-elements list: trans_index, start_t, end_t
     last_channel_effect = np.zeros((device_nb, bs_nb), dtype=np.float)
 
-    # Packet is represented by a 3-elements list: trans_index, start_t, end_t
+    # Packet is represented by a 3-elements list: trans_index, start_t, end_t. Time-related info
     pkts_history = np.zeros((sim_duration, device_nb, 3), dtype=np.float)
 
     for slot_index in range(sim_duration-1):
@@ -254,16 +231,21 @@ def run_simulation(sim_config_dict):
                 crs_prt_1_matrix = np.tile(crs_prt_1, (bs_nb, 1)).transpose()
                 crs_prt_2_matrix = np.tile(crs_prt_2, (bs_nb, 1)).transpose()
 
-                mean_cumu_itf_matrix = rec_power_history[slot_index-1]*crs_prt_1_matrix \
+                # The cumulative interference depends on "mean mode" or "max mode"
+                # if ITF_MODE == "MEAN":
+
+                cumu_itf_matrix = rec_power_history[slot_index-1]*crs_prt_1_matrix \
                                     +rec_power_history[slot_index]*crs_prt_2_matrix
+                # else:
+
                 ref_rec_power_vector = rec_power_history[slot_index, device_id]
-                # Sum on the basis of column, i.e., cumulative power for each BS. Thus len(mean_cumu_itf_vector) == bs_nb
+                # Sum on the basis of column, i.e., cumulative power for each BS. Thus len(cumu_itf_vector) == bs_nb
                 # To avoid 0 in the denominator, add an extremly small value
-                mean_cumu_itf_vector = mean_cumu_itf_matrix.sum(axis=0) + F_EPS - ref_rec_power_vector
+                cumu_itf_vector = cumu_itf_matrix.sum(axis=0) + F_EPS - ref_rec_power_vector
                 # The failure state of a device at all BS.
                 # For BS_RX_DIVERS, if any of this list is false (i.e., successful transmission)
                 # For BS_NST_ATT, we just care about the state of attached BS.
-                ref_rec_sinr_vector = [sinr < np.power(10, threshold/10) for sinr in ref_rec_power_vector/mean_cumu_itf_vector]
+                ref_rec_sinr_vector = [sinr < np.power(10, threshold/10) for sinr in ref_rec_power_vector/cumu_itf_vector]
 
                 # Process with received SINR at the BS side.
                 if METHOD == "BS_NST_ATT":

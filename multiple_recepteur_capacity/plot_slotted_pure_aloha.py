@@ -93,6 +93,16 @@ if __name__ == '__main__':
     sim_plr_upper_divers_0_pure = [element[2]-element[1] for element in sim_plr_list_0dB]
     fig, axes = plt.subplots(1, 2, figsize=FIGSIZE, sharey=False)
 
+    bs_nst_att_sigma_0_pure = glob.glob(os.path.join(
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "p_0.04_bs_0.004_R_40",
+        "BS_NST_ATT",  "sigma_0dB_50per", "*.csv")
+    )
+    sim_intensity_nst_0dB, sim_plr_list_nst_0dB = sgam.sim_data_process(bs_nst_att_sigma_0_pure)
+    sim_plr_nst_0_pure = [element[1] for element in sim_plr_list_nst_0dB]
+    sim_plr_lower_nst_0_pure = [element[1]-element[0] for element in sim_plr_list_nst_0dB]
+    sim_plr_upper_nst_0_pure = [element[2]-element[1] for element in sim_plr_list_nst_0dB]
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE, sharey=False)
+
     for i in range(len(axes)):
         axes[i].set_yscale(SCALE[i])
         axes[i].plot(
@@ -107,12 +117,20 @@ if __name__ == '__main__':
             fmt='*',
             ecolor='r',
             capthick=2,
-            label="BS_RX_DIVERS SIM,0dB")
+            label="BS_RX_DIVERS,SIM,0dB")
         axes[i].plot(
             lambda_m,
             sgam.bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
             color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="BS_RX_DIVERS,pure,max_itf"
         )
+        axes[i].errorbar(
+            sim_intensity_nst_0dB,
+            sim_plr_nst_0_pure,
+            yerr=[sim_plr_lower_nst_0_pure, sim_plr_upper_nst_0_pure],
+            fmt='o',
+            ecolor='b',
+            capthick=2,
+            label="BS_NST_ATT,SIM,0dB")
         axes[i].plot(
             lambda_m,
             slot_p_f_rx_div_8,

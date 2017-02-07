@@ -197,7 +197,9 @@ def run_simulation(sim_config_dict):
         fadings = np.random.exponential(scale=mu_fading, size=(bs_nb, device_nb))
         # 将每个slot，每个设备消耗的能量，存进 energy_history. 我们假设整个slot都以恒定的功率传输数据(不知道这个假设效果如何)
         for device_id, trans_index in enumerate(sim_history[slot, :, 0]):
-            sim_history[slot, device_id, int(trans_index)] = rec_power_levels[0, device_id]
+            # If want to calculate EE, here must save transmit_power_level
+            # sim_history[slot, device_id, int(trans_index)] = rec_power_levels[0, device_id]
+            sim_history[slot, device_id, int(trans_index)] = 1.0
 
         # With impact of factors such as fading and power control error
         # Also take into account the path loss
