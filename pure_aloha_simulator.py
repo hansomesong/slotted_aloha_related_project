@@ -233,10 +233,8 @@ def run_simulation(sim_config_dict):
 
                 # The cumulative interference depends on "mean mode" or "max mode"
                 # if ITF_MODE == "MEAN":
-
                 cumu_itf_matrix = rec_power_history[slot_index-1]*crs_prt_1_matrix \
-                                    +rec_power_history[slot_index]*crs_prt_2_matrix
-                # else:
+                                    +rec_power_history[slot_index]*crs_prt_2_matrix                # else:
 
                 ref_rec_power_vector = rec_power_history[slot_index, device_id]
                 # Sum on the basis of column, i.e., cumulative power for each BS. Thus len(cumu_itf_vector) == bs_nb

@@ -92,8 +92,8 @@ if __name__ == '__main__':
     # print sim_plr
 
     width  = 40
-    intensity = 0.1
-    density_bs = 0.008
+    intensity = 0.4
+    density_bs = 0.04
     bs_nb = int(np.random.poisson(density_bs*np.power(width, 2)))
     device_nb = int(np.random.poisson(intensity*np.power(width, 2)))
     print "BS_STATION NUMBER:", bs_nb, "DEVICE_NUMBER:", device_nb
@@ -106,9 +106,9 @@ if __name__ == '__main__':
     # coordinates_devices_array = zip(device_x_array, device_y_array)
     # coordinates_bs_array = zip(bs_x_array, bs_y_array)
 
-    fig = plt.figure(figsize=(6, 6))
+    fig = plt.figure(figsize=(5, 5))
     ax = fig.add_subplot(111)
-    ax.set_title("One realization of device and Bs spatial distribution", fontsize=18)
+    # ax.set_title("One realization of device and Bs spatial distribution", fontsize=18)
     ax.set_xlabel("X-axis", fontsize=12)
     ax.set_ylabel("Y-axis", fontsize=12)
     ax.grid(True, linestyle='-', color='0.75')
@@ -119,7 +119,9 @@ if __name__ == '__main__':
     # plt.show()
 
     radius = 20
-    rho = radius*np.sqrt(np.random.uniform(0, 1, device_nb))
+    # rho = radius*np.sqrt(np.random.uniform(0, 1, device_nb))
+    rho = np.concatenate(([0.0], radius*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
+
     arguments = np.random.uniform(-np.pi-10e-4, np.pi+10e-4, device_nb)
     device_x_array_2 = rho*np.cos(arguments)
     device_y_array_2 = rho*np.sin(arguments)

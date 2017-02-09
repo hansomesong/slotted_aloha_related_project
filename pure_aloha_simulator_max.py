@@ -93,34 +93,52 @@ def process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans,
                 # The case where max_trans has been reached. Failure of this packet transmission
                 sim_history[slot, device_id, 0] = max_trans + 1
 
+def retransmission():
+    pass
 
-def is_retransmited(a):
+def crs_prt(pkt_1, pkt_2):
     """
-        This method is uniquely useful for BS reception diversity approach, where just one of BS in the simulation
-        says no need to do retransmission. This method returns a False, which means this transmission is successful.
-    :param a:
-    :return:
+        Calculate the cross part with other packet
     """
-    """
-    :param a:
-    :return:
-    """
-    result = True
-    for state in a:
-        result = result and state
-    return result
+    return max(min(pkt_1[2], pkt_2[2]) - max(pkt_1[1], pkt_2[1]), 0)
 
-def output_simulation_csv():
-    """
-        This method is used to write the simulation details into a TxT file
-        The format of output file is as follows:
-        #BS #DEVICE #AREA
-        BS_COORDINATES
-        DEVICES_COORAN
+def deploy_nodes(width, alpha, intensity_bs):
+    # The involved device number will be one sample from a spatial PPP over a finit disk area
+    # Generate the needed device nb and base station in this simulation
+    AREA_SURFACE = np.pi*np.power(width, 2)
+    device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))
+    # We should have at least one BS
+    bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)
+    # Uniformelly distribute devices and base stations using polar coordinates.
+    # We assume that always one device at the origin
+    device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
+    device_arguments = np.random.uniform(-np.pi, np.pi, device_nb)
+    coordinates_devices_array = zip(device_rho, device_arguments)
+    bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
+    bs_arguments = np.random.uniform(-np.pi, np.pi, bs_nb)
+    coordinates_bs_array = zip(bs_rho, bs_arguments)
+    return device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array
 
-        To be finised...
-    """
-    return 0
+def nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss):
+    # An intermediare data structure for the device-to-base_station distance.
+    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
+    for index, line in enumerate(d2bs_dist_matrix):
+        # index => index of BS
+        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+        # The value is the square of actual distance, whatever, just for selection of nearest BS
+        d2bs_dist_matrix[index] = np.array(
+            [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
+                 for coordinate in coordinates_devices_array])
+
+    # Allocate the nearest base station, according to the min of distance of each row
+    device_base_table = d2bs_dist_matrix.argmin(axis=0)
+    # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
+    vectorized_path_loss_f = np.vectorize(path_loss_law)
+    # A maxtrix of size: DEVICE_NB * BS_NB
+    path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
+    path_loss_matrix = np.transpose(path_loss_matrix)
+    return device_base_table, path_loss_matrix
+
 
 def run_simulation(sim_config_dict):
     """
@@ -143,97 +161,141 @@ def run_simulation(sim_config_dict):
     mu_fading,  mu_shadowing, sigma_dB = sim_config_dict['MU_FADING'], sim_config_dict['MU_SHADOWING'], sim_config_dict['SIGMA_SHADOWING']
     sigma_dB += F_EPS
     width, path_loss = sim_config_dict["WIDTH"], sim_config_dict['PATH_LOSS']
-
     BETA = np.log(10)/10.0
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
-    # The involved device number will be one sample from a spatial PPP over a finit disk area
-    # Generate the needed device nb and base station in this simulation
-    AREA_SURFACE = np.pi*np.power(width, 2)
-    device_nb = max(int(np.random.poisson(alpha*AREA_SURFACE, 1)), 1)
-    # We should have at least one BS
-    bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)
-    # Uniformelly distribute devices and base stations using polar coordinates.
-    # We assume that always one device at the origin
-    device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
-    device_arguments = np.random.uniform(-np.pi-10e-4, np.pi+10e-4, device_nb)
-    coordinates_devices_array = zip(device_rho, device_arguments)
-    bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
-    bs_arguments = np.random.uniform(-np.pi-10e-4, np.pi+10e-4, bs_nb)
-    coordinates_bs_array = zip(bs_rho, bs_arguments)
-    # Save the cumulative interference suffered by device_0 when transmitting message to BS_0
-    cumu_itf = []
 
-    # An intermediare data structure for the device-to-base_station distance.
-    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
-    for index, line in enumerate(d2bs_dist_matrix):
-        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
-        # The value is the square of actual distance, whatever, just for selection of nearest BS
-        d2bs_dist_matrix[index] = np.array(
-            [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
-                 for coordinate in coordinates_devices_array])
-
-    # Allocate the nearest base station, according to the min of distance of each row
-    device_base_table = d2bs_dist_matrix.argmin(axis=0)
-    # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
-    vectorized_path_loss_f = np.vectorize(path_loss_law)
-    path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
+    device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, alpha, intensity_bs)
+    device_base_table, path_loss_matrix = nodes_location_process(
+        device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss
+    )
 
     # Now Add one zero in the beginning of LM list, to facilitate the generation of
     # Then each element in LM list represents the transmit power for the kth transmission (Not retransmission).
     # For example: max_trans = 5, l=2, m=1 => LM = [0, 1, 2, 4, 8, 16] The 0th transmission transmit power is 0
     LM = [1.0*np.power(l, k-1)*np.power(m, max_trans-k) if k != 0.0 else 0.0 for k in range(max_trans+1)]
 
-    # sim_history now is 3-d array.
-    # The third dimension is used to represent the transmission index and received power levels history
-    sim_history = np.zeros((sim_duration, device_nb, max_trans+1), dtype=np.float)
-    for slot in range(sim_duration):
-        # First generate new packets. k refers to the k th transmision instead of retransmission
-        sim_history[slot, :, 0] = np.array(
-            [bernoulli.rvs(binomial_p) if k == 0.0 else k for k in sim_history[slot, :, 0]]
+    # sim_history: a matrix of size: sim_duration * device_nb
+    sim_history = np.zeros((sim_duration, device_nb), dtype=np.float)
+    # rec_power_history: a matrix of size: sim_duration * device_nb * bs_nb
+    # Store the received power level from each device to each BS
+    rec_power_history = np.zeros((sim_duration, device_nb, bs_nb), dtype=np.float)
+    # trans_power_history: a matrix of size: sim_duration * device_nb * bs_nb,  useful for energy-efficiency analysis
+    trans_power_history = np.zeros((sim_duration, device_nb, bs_nb), dtype=np.float)
+
+    # Packet is represented by a 3-elements list: trans_index, start_t, end_t
+    last_channel_effect = np.zeros((device_nb, bs_nb), dtype=np.float)
+
+    # Packet is represented by a 3-elements list: trans_index, start_t, end_t. Time-related info
+    pkts_history = np.zeros((sim_duration, device_nb, 3), dtype=np.float)
+
+    for slot_index in range(sim_duration-1):
+        # At the beginning of each loop, determine which devices will generate new packets
+        # Register the device ids generating new packets in current slot
+        new_pkt_d_ids = [
+            device_id for device_id in range(device_nb)
+            if trans_power_history[slot_index, device_id, 0] == 0.0 and bernoulli.rvs(binomial_p) == 1
+        ]
+        # print "new_pkt_d_ids", new_pkt_d_ids
+        for device_id in new_pkt_d_ids:
+            trans_power_history[slot_index, device_id, :] = np.array([1]*bs_nb)
+            trans_power_history[slot_index+1, device_id, :] = np.array([1]*bs_nb)
+
+            start_t = np.random.uniform(slot_index, slot_index+1)
+            pkts_history[slot_index][device_id] = [1, start_t, slot_index+1]
+            pkts_history[slot_index+1][device_id] = [1, slot_index+1, start_t+1]
+
+        #update rec_power_history
+        channel_variations = np.array([
+            np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, bs_nb)*np.random.exponential(mu_fading, bs_nb)
+            if sum(rand_effect) == 0 else rand_effect for device_id, rand_effect in enumerate(last_channel_effect)
+        ])
+        # At the end of each iteration, do not to save fading and shadowing values in this iteration
+        last_channel_effect = np.array(
+            [rand_effect if device_id in new_pkt_d_ids else [0.0]*bs_nb
+             for device_id, rand_effect in enumerate(channel_variations)]
         )
-        rec_power_levels = np.tile(np.array([LM[int(k)] for k in sim_history[slot, :, 0]]), (bs_nb, 1))
-        shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, size=(bs_nb, device_nb))
-        fadings = np.random.exponential(scale=mu_fading, size=(bs_nb, device_nb))
-        # 将每个slot，每个设备消耗的能量，存进 energy_history. 我们假设整个slot都以恒定的功率传输数据(不知道这个假设效果如何)
-        for device_id, trans_index in enumerate(sim_history[slot, :, 0]):
-            # pass
-            # If want to calculate EE, here must save transmit_power_level
-            sim_history[slot, device_id, int(trans_index)] = rec_power_levels[0, device_id]
 
-        # With impact of factors such as fading and power control error
-        # Also take into account the path loss
-        # Actually rec_power_levels is a bs_nb X device_nb matrix
-        rec_power_levels *= fadings*shadowings*path_loss_matrix
+        # fadings = np.random.exponential(scale=mu_fading, size=(device_nb, bs_nb))
+        rec_power_history[slot_index] = trans_power_history[slot_index]*channel_variations*path_loss_matrix
 
-        curr_trans_matrix = np.apply_along_axis(calculate_sinr, 1, rec_power_levels, threshold, sim_history[slot, :, 0])
+        # If there exit finished transmission. If yes. proceed them... Else go to next iteration.
+        emitted_device_ids=[device_id for device_id, pkt in enumerate(pkts_history[slot_index]) if pkt[0]!= 0 and pkt[2] < slot_index+1]
+        if len(emitted_device_ids) > 0:
+            for device_id in emitted_device_ids:
+                # First calculate cross part. This is very important for mean cumulative interference calcul.
+                ref_pkt_1 = pkts_history[slot_index-1][device_id]
+                ref_pkt_2 = pkts_history[slot_index][device_id]
+                crs_prt_1 = np.array([1.0 if pkt[1] <= ref_pkt_1[1] <= pkt[2] else 0.0 for pkt in pkts_history[slot_index-1]])
+                crs_prt_2 = np.array([1.0 if pkt[1] <= ref_pkt_2[2] <= pkt[2] else 0.0 for pkt in pkts_history[slot_index]])
+                crs_prt_1_matrix = np.tile(crs_prt_1, (bs_nb, 1)).transpose()
+                crs_prt_2_matrix = np.tile(crs_prt_2, (bs_nb, 1)).transpose()
 
-        curr_trans_results = ''
-        if METHOD == "BS_NST_ATT":
-        # The nearest-base-station approache
-            curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
-        elif METHOD == "BS_RX_DIVERS":
-        # The fire-and-forget approach
-            curr_trans_results = np.apply_along_axis(is_retransmited, 0, curr_trans_matrix)
-        else:
-            print "No simulated method is specified (BS_NST_ATT or BS_RX_DIVERS), program exit. Please check you simulation configuration JSON file."
-            exit()
-        # Iterate curr_trans_results to proceed retransmission...
-        process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans, sim_duration, BACK_OFFS)
+                # The cumulative interference depends on "mean mode" or "max mode"
+                # if ITF_MODE == "MEAN":
+                start_itf_matrix = (rec_power_history[slot_index-1]*crs_prt_1_matrix).sum(axis=0)
+                end_itf_matrix = (rec_power_history[slot_index]*crs_prt_2_matrix).sum(axis=0)
 
-    # Simulation finished here. Now do statistics work.
-    # with open("{0}_{1}.txt".format(alpha, seed), "w") as f_handler:
-    #     spamwriter = csv.writer(f_handler, delimiter=',')
-    #     spamwriter.writerow(cumu_itf)
-    statistics_vector = sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history)
+                ref_rec_power_vector = rec_power_history[slot_index, device_id]
+
+                if not np.array_equal(ref_rec_power_vector, rec_power_history[slot_index-1, device_id]):
+                    print "last slot", slot_index-1, rec_power_history[slot_index-1, device_id]
+                    print "current slot", slot_index, ref_rec_power_vector
+                    exit()
+                #
+                # print start_itf_matrix
+                # print end_itf_matrix
+                # print np.maximum.reduce([start_itf_matrix, end_itf_matrix])
+                # Sum on the basis of column, i.e., cumulative power for each BS. Thus len(cumu_itf_vector) == bs_nb
+                # To avoid 0 in the denominator, add an extremly small value
+                cumu_itf_vector = np.maximum.reduce([start_itf_matrix, end_itf_matrix]) + F_EPS - ref_rec_power_vector
+                # The failure state of a device at all BS.
+                # For BS_RX_DIVERS, if any of this list is false (i.e., successful transmission)
+                # For BS_NST_ATT, we just care about the state of attached BS.
+                ref_rec_sinr_vector = [sinr < np.power(10, threshold/10) for sinr in ref_rec_power_vector/cumu_itf_vector]
+
+                # Process with received SINR at the BS side.
+                if METHOD == "BS_NST_ATT":
+                    if ref_rec_sinr_vector[device_base_table[device_id]]:
+                        # True => sinr < thresold => failure => retransmission procedure
+                        #Todo: to be implemented. This method. For one-shot acess, we can leave it empty...
+                        retransmission()
+                        sim_history[slot_index][device_id] = 2.0
+
+                    else:
+                        # successful transmission. Do some clean work.
+                        sim_history[slot_index][device_id] = 1.0
+
+                elif METHOD == "BS_RX_DIVERS":
+                    if False in ref_rec_sinr_vector:
+                    # If there exist False in ref_rec_sinr_vector => a certain BS has received the packet!!
+                        sim_history[slot_index][device_id] = 1.0
+                    else:
+                        retransmission()
+                        sim_history[slot_index][device_id] = 2.0
+
+                else:
+                    print "No simulated method is specified (BS_NST_ATT or BS_RX_DIVERS), program exit. Please check you simulation configuration JSON file."
+                    exit()
+
+                # For each finished packet, do not forget to reset transmit power in last slot as 0
+                trans_power_history[slot_index-1][device_id] = 0.0
+
+
+    statistics_vector = sim_result_statistics(
+        sim_config_dict, device_nb, coordinates_devices_array, sim_history, trans_power_history
+    )
     end_t = int(time())
     time_elapsed = float(end_t-start_t)/60.0
     print "Time:", int(time_elapsed), "Alpha:", alpha, "Seed:", seed, "Result:"
     print statistics_vector.to_string(index=False, header=False)
     return statistics_vector
 
-def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history):
+def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history, trans_power_history):
     # Remove the statistics in the border area. Particularly important for BS reception diversity.
+    # print "In statistics.s..."
+    # print sim_history[:,0]
+    # print trans_power_history[:, 0, 0]
     width = sim_config_dict["WIDTH"]
     sim_duration, warm_t = sim_config_dict['SIM_DURATION'], sim_config_dict['WARM_UP']
     max_trans = sim_config_dict['MAX_TRANS']
@@ -241,7 +303,7 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
     stat_percents = sim_config_dict["STAT_PERCENTS"]
     for stat_percent in stat_percents:
         accepted_device_index = np.array([1.0 if coordinate[0] <= width*stat_percent else 0.0 for coordinate in coordinates_devices_array])
-        trans_index_array = sim_history[warm_t:sim_duration, :, 0]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
+        trans_index_array = sim_history[warm_t:sim_duration, :]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
         # To convert the type of an array, use the .astype() method (preferred) or the type itself as a function.
         # For example: z.astype(float)
         trans_index_array = trans_index_array.reshape(device_nb*(sim_duration-warm_t))
@@ -273,10 +335,10 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
         # We iterate max_trans times (i.e., max_trans+1-1) to summarize the consumed energies by devices within
         # statistical region.
         # TODO: There must be some way to avoid the following loop...
-        total_energies = 0
-        for i in range(1, max_trans+1):
-            tmp = sim_history[warm_t:sim_duration, :, i]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
-            total_energies += sum(tmp.reshape(device_nb*(sim_duration-warm_t)))
+
+        energy_index_array = trans_power_history[warm_t:sim_duration, :, 0]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
+        energy_index_array = energy_index_array.reshape(device_nb*(sim_duration-warm_t))
+        total_energies = energy_index_array.sum()
 
         energy_efficiency = total_energies/succ_transmission
         statistics_vector.append(energy_efficiency)

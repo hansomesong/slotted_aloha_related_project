@@ -28,7 +28,7 @@ SUB_DIR = 'multiple_reception'
 CASE_DIR = 'fading'
 SUB_CASE_DIR = "bs_0.01_p_0.002_R_40|100"
 DATA_FOLDED = '.'
-FIGSIZE = (15, 10)
+FIGSIZE = (15, 8)
 
 A_P_DECREMENT ="analytical, power decrement"
 A_P_IDENTIC = "analytical, identical power"
@@ -101,6 +101,15 @@ if __name__ == '__main__':
     sim_plr_nst_0_pure = [element[1] for element in sim_plr_list_nst_0dB]
     sim_plr_lower_nst_0_pure = [element[1]-element[0] for element in sim_plr_list_nst_0dB]
     sim_plr_upper_nst_0_pure = [element[2]-element[1] for element in sim_plr_list_nst_0dB]
+
+    bs_nst_att_sigma_8_pure = glob.glob(os.path.join(
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "p_0.04_bs_0.004_R_40",
+        "BS_NST_ATT",  "sigma_8dB_50per", "*.csv")
+    )
+    sim_intensity_nst_8dB, sim_plr_list_nst_8dB = sgam.sim_data_process(bs_nst_att_sigma_8_pure)
+    sim_plr_nst_8_pure = [element[1] for element in sim_plr_list_nst_8dB]
+    sim_plr_lower_nst_8_pure = [element[1]-element[0] for element in sim_plr_list_nst_8dB]
+    sim_plr_upper_nst_8_pure = [element[2]-element[1] for element in sim_plr_list_nst_8dB]
     fig, axes = plt.subplots(1, 2, figsize=FIGSIZE, sharey=False)
 
     for i in range(len(axes)):
@@ -115,6 +124,7 @@ if __name__ == '__main__':
             sim_plr_divers_0_pure,
             yerr=[sim_plr_lower_divers_0_pure, sim_plr_upper_divers_0_pure],
             fmt='*',
+            mfc='r',
             ecolor='r',
             capthick=2,
             label="BS_RX_DIVERS,SIM,0dB")
@@ -128,44 +138,54 @@ if __name__ == '__main__':
             sim_plr_nst_0_pure,
             yerr=[sim_plr_lower_nst_0_pure, sim_plr_upper_nst_0_pure],
             fmt='o',
+            mfc='b',
             ecolor='b',
             capthick=2,
             label="BS_NST_ATT,SIM,0dB")
-        axes[i].plot(
-            lambda_m,
-            slot_p_f_rx_div_8,
-            color='r',  marker='', linestyle='-', linewidth=LINEWIDTH, label="BS_RX_DIVERS,slot"
-        )
+        # axes[i].plot(
+        #     lambda_m,
+        #     slot_p_f_rx_div_8,
+        #     color='r',  marker='', linestyle='-', linewidth=LINEWIDTH, label="BS_RX_DIVERS,slot"
+        # )
         axes[i].plot(
             lambda_m,
             pure_p_f_bs_nst_att_8,
             color='g',  marker='', linestyle='--', linewidth=LINEWIDTH, label="BS_NST_ATT,pure,mean_itf,8dB"
         )
-        axes[i].plot(
-            lambda_m,
-            sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
-            color='g',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="BS_NST_ATT,pure,max_itf,8dB"
-        )
-        axes[i].plot(
-            lambda_m,
-            slot_p_f_bs_nst_att_8,
-            color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="BS_NST_ATT,slot,8dB"
-        )
+        axes[i].errorbar(
+            sim_intensity_nst_8dB,
+            sim_plr_nst_8_pure,
+            yerr=[sim_plr_lower_nst_8_pure, sim_plr_upper_nst_8_pure],
+            fmt='d',
+            mfc='g',
+            ecolor='g',
+            capthick=2,
+            label="BS_NST_ATT,SIM,8dB")
+        # axes[i].plot(
+        #     lambda_m,
+        #     sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
+        #     color='g',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="BS_NST_ATT,pure,max_itf,8dB"
+        # )
+        # axes[i].plot(
+        #     lambda_m,
+        #     slot_p_f_bs_nst_att_8,
+        #     color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="BS_NST_ATT,slot,8dB"
+        # )
         axes[i].plot(
             lambda_m,
             pure_p_f_bs_nst_att_0,
             color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="BS_NST_ATT,pure,mean_itf,0dB"
         )
-        axes[i].plot(
-            lambda_m,
-            sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0, True, False),
-            color='b',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="BS_NST_ATT,pure,max_itf,0dB"
-        )
-        axes[i].plot(
-            lambda_m,
-            slot_p_f_bs_nst_att_0,
-            color='b',  marker='', linestyle='-', linewidth=LINEWIDTH, label="BS_NST_ATT,slot,0dB"
-        )
+        # axes[i].plot(
+        #     lambda_m,
+        #     sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0, True, False),
+        #     color='b',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="BS_NST_ATT,pure,max_itf,0dB"
+        # )
+        # axes[i].plot(
+        #     lambda_m,
+        #     slot_p_f_bs_nst_att_0,
+        #     color='b',  marker='', linestyle='-', linewidth=LINEWIDTH, label="BS_NST_ATT,slot,0dB"
+        # )
         axes[i].grid()
         axes[i].axis([X_START, X_END, Y_START, Y_END])
         axes[i].set_xlabel(r"Device Spatial Density")
