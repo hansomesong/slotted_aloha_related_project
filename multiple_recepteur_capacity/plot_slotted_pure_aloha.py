@@ -91,7 +91,6 @@ if __name__ == '__main__':
     sim_plr_divers_0_pure = [element[1] for element in sim_plr_list_0dB]
     sim_plr_lower_divers_0_pure = [element[1]-element[0] for element in sim_plr_list_0dB]
     sim_plr_upper_divers_0_pure = [element[2]-element[1] for element in sim_plr_list_0dB]
-    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE, sharey=False)
 
     bs_nst_att_sigma_0_pure = glob.glob(os.path.join(
         "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "p_0.04_bs_0.004_R_40",
@@ -110,6 +109,17 @@ if __name__ == '__main__':
     sim_plr_nst_8_pure = [element[1] for element in sim_plr_list_nst_8dB]
     sim_plr_lower_nst_8_pure = [element[1]-element[0] for element in sim_plr_list_nst_8dB]
     sim_plr_upper_nst_8_pure = [element[2]-element[1] for element in sim_plr_list_nst_8dB]
+
+    bs_rx_div_sigma_0_max_pure = glob.glob(os.path.join(
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "p_0.04_bs_0.004_R_40",
+        "BS_RX_BDIVERS", "sigma_0dB", "*.csv")
+    )
+    sim_intensity_max_0dB, sim_plr_list_max_0dB = sgam.sim_data_process(bs_rx_div_sigma_0_max_pure)
+    sim_plr_divers_max_0_pure = [element[1] for element in sim_plr_list_max_0dB]
+    sim_plr_lower_divers_max_0_pure = [element[1]-element[0] for element in sim_plr_list_max_0dB]
+    sim_plr_upper_divers_max_0_pure = [element[2]-element[1] for element in sim_plr_list_max_0dB]
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE, sharey=False)
+
     fig, axes = plt.subplots(1, 2, figsize=FIGSIZE, sharey=False)
 
     for i in range(len(axes)):
@@ -127,12 +137,24 @@ if __name__ == '__main__':
             mfc='r',
             ecolor='r',
             capthick=2,
-            label="BS_RX_DIVERS,SIM,0dB")
+            label="BS_RX_DIVERS,SIM,0dB"
+        )
+
         axes[i].plot(
             lambda_m,
             sgam.bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
             color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="BS_RX_DIVERS,pure,max_itf"
         )
+        axes[i].errorbar(
+            sim_intensity_max_0dB,
+            sim_plr_divers_max_0_pure,
+            yerr=[sim_plr_lower_divers_max_0_pure, sim_plr_upper_divers_max_0_pure],
+            fmt='*',
+            mfc='r',
+            ecolor='r',
+            capthick=2,
+            label="BS_RX_DIVERS,SIM,0dB,MAX")
+
         axes[i].errorbar(
             sim_intensity_nst_0dB,
             sim_plr_nst_0_pure,
@@ -194,7 +216,7 @@ if __name__ == '__main__':
 
     print sgam.bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
 
-    plt.legend(bbox_to_anchor=(0.119, 0.02, 0.79, 1), loc=1, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
+    # plt.legend(bbox_to_anchor=(0.119, 0.02, 0.79, 1), loc=1, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
     plt.savefig('pure_slot_packet_loss_rate_mpr.eps', format='eps', dpi=300)
 
     plt.show()
