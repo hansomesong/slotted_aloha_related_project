@@ -12,6 +12,8 @@ import pandas as pd
 import glob
 from scipy.special import gamma as gamma_f
 import scipy.special as ss
+import scipy
+
 
 from analytical_model import sgam
 
@@ -48,7 +50,7 @@ SCALE = ["log", "linear"]
 
 if __name__ == '__main__':
     X_START = 0.0
-    X_END = 0.03
+    X_END = 0.1
     X_STEP = 0.002
     Y_START = 1e-3
     Y_END = 0.6
@@ -122,9 +124,18 @@ if __name__ == '__main__':
 
     # Define p_f_2 as the outage probability over infinite plane
     p_f_rx_div_0 = sgam.bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0)
+
+    p_f_rx_div_mrc_0 = 1-scipy.special.erf(np.power(p*lambda_m/lambda_b*np.sqrt(np.pi*1.99), -1))
+    p_f_rx_div_mrc_0_num = sgam.num_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, pure=False, itf_mean=True)
+
+    print "MRC"
+    print zip(p*lambda_m/lambda_b, p_f_rx_div_mrc_0)
     p_f_bs_nst_att_0 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0)
     p_f_bs_nst_att_8 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8)
     p_f_bs_bst_att_8 = sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8)
+
+
+
 
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)
 
@@ -134,6 +145,19 @@ if __name__ == '__main__':
         p*lambda_m/lambda_b,
         p_f_rx_div_0,
         color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
+    )
+
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     p_f_rx_div_mrc_0,
+    #     color='k',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA, with MRC"
+    # )
+
+
+    axes.plot(
+        p*lambda_m/lambda_b,
+        p_f_rx_div_mrc_0_num,
+        color='r',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Diversity,ANA, with MRC, numerically"
     )
     axes.plot(
         p*lambda_m/lambda_b,
@@ -204,6 +228,6 @@ if __name__ == '__main__':
 
     # plt.legend(bbox_to_anchor=(0.119, 0.01, 0.79, 1), loc=1, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
     plt.legend(loc='best')
-    plt.savefig('new_packet_loss_rate_mpr.eps', format='eps', dpi=300)
+    plt.savefig('new_packet_loss_rate_mpr_mrc.eps', format='eps', dpi=300)
 
     plt.show()

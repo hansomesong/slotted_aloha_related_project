@@ -56,7 +56,7 @@ def sim_data_process(folder_dir):
     sim_intensity = []
     sim_plr =  []
     for csv_file in folder_dir:
-        csv_df = pd.read_csv(csv_file, sep=',', header=None)
+        csv_df = pd.read_csv(csv_file, sep=',', header=None, dtype=np.float64)
         plr_df = csv_df.values[:, -2]
         # sort the obtained to remove the max and min
         plr_df.sort()
