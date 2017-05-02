@@ -141,11 +141,11 @@ if __name__ == '__main__':
         color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
     )
 
-    # axes.plot(
-    #     p*lambda_m/lambda_b,
-    #     p_f_bs_bst_att_8,
-    #     color='k',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
-    # )
+    axes.plot(
+        p*lambda_m/lambda_b,
+        p_f_bs_bst_att_8,
+        color='k',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
+    )
 
     axes.plot(
         p*lambda_m/lambda_b,

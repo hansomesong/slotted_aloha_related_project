@@ -145,6 +145,12 @@ def run_simulation(sim_config_dict):
     width, path_loss = sim_config_dict["WIDTH"], sim_config_dict['PATH_LOSS']
 
     BETA = np.log(10)/10.0
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/path_loss
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    # The only difference between BS_NST_ATT and BS_BEST_ATT is whether to change the intensity of BS
+    if METHOD == "BS_BEST_ATT":
+        intensity_bs *= fm_shadowing
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
     # The involved device number will be one sample from a spatial PPP over a finit disk area
@@ -209,7 +215,7 @@ def run_simulation(sim_config_dict):
         curr_trans_matrix = np.apply_along_axis(calculate_sinr, 1, rec_power_levels, threshold, sim_history[slot, :, 0])
 
         curr_trans_results = ''
-        if METHOD == "BS_NST_ATT":
+        if METHOD in ["BS_NST_ATT", "BS_BEST_ATT"]:
         # The nearest-base-station approache
             curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
         elif METHOD == "BS_RX_DIVERS":
