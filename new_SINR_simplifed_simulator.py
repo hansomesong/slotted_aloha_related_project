@@ -277,7 +277,8 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
         statistics_vector = [int(stat_percent*100), sim_config_dict['ALPHA']]
         item_pairs = itemfreq(trans_index_array)[1:]  # count for items >= 1
         # Attention! Must iterate for item_pairs instead of statistics: item_pairs may just contain counts for 0 and 1
-        for trans_index, element in enumerate(item_pairs):
+        for element in item_pairs:
+            trans_index = element[0] - 1
             statistics[trans_index][1] = element[1]
 
         item_counts = [e[1] for e in statistics]
@@ -323,7 +324,7 @@ def main(sim_config_dict, logs_directory):
         # If one-shot access
         # Some parameters, such as warm time, l, m, back-off time, no need to know...
         output_csv_f_name = \
-            "METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}_".format(**sim_config_dict)
+            "SLOT_METHOD={METHOD}_TRLD={THRESLD}_P={BINOMIAL_P}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}_".format(**sim_config_dict)
         output_csv_f_name +="TMP={}.csv".format(strftime("%Y%m%d%H%M%S"))
 
     else:
