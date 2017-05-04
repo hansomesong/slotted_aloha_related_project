@@ -247,8 +247,14 @@ def run_simulation(sim_config_dict):
                 # print end_itf_matrix
                 # print np.maximum.reduce([start_itf_matrix, end_itf_matrix])
                 # Sum on the basis of column, i.e., cumulative power for each BS. Thus len(cumu_itf_vector) == bs_nb
-                # To avoid 0 in the denominator, add an extremly small value
-                cumu_itf_vector = np.maximum.reduce([start_itf_matrix, end_itf_matrix]) + F_EPS - ref_rec_power_vector
+                # To avoid 0 in the denominator, add an extremly small value (i.e. machine float epsilon)
+                # cumu_itf_vector = np.maximum.reduce([start_itf_matrix, end_itf_matrix]) + F_EPS - ref_rec_power_vector
+
+                # 2017-05-02
+                # we use the upper bound I^{real} <= I^{max} = I^{start} + I^{end},
+                # where I^{real} is the actual cumulative inteference, I^{start} is cumulative at the start moment of a
+                # slot, I^{end} is cumulative interference at the end moment of a slot.
+                cumu_itf_vector = start_itf_matrix + end_itf_matrix + F_EPS - ref_rec_power_vector
                 # The failure state of a device at all BS.
                 # For BS_RX_DIVERS, if any of this list is false (i.e., successful transmission)
                 # For BS_NST_ATT, we just care about the state of attached BS.

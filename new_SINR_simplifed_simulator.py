@@ -36,11 +36,10 @@ def worker(sim_settings, q):
     q.put(sim_result)
 
 # This function will be vectorized by Numpy in the corp of function run_simluation(**)
-# and run on a matrix where the value in each cell is the square of distance
-# That's why, we multiply 0.5 with input path loss exponent.
+# and run on a matrix where the value in each cell is the distance between a BS and device
 def path_loss_law(dist_square, path_loss_exponent):
     # $r^{-\gamma}$, where r is distance, \gamma is path-loss component
-    return np.power(dist_square, -0.5*path_loss_exponent)
+    return np.power(dist_square, -1.0*path_loss_exponent)
 
 
 def calculate_sinr(rec_power_vector, threshold, curr_slot_trans_index):
@@ -122,6 +121,27 @@ def output_simulation_csv():
     """
     return 0
 
+def calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array):
+    """
+        This method is used to calculate device-to-BS distance matrix.
+        Each row is a distance vector for a device to each BS
+        Each column is a distance vector for a BS to each device
+    """
+    # An intermediare data structure for the device-to-base_station distance.
+    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
+    for index, line in enumerate(d2bs_dist_matrix):
+        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+        # The value is the square of actual distance
+        dist_sqr_list = [
+                            np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)
+                                -2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
+                            for coordinate in coordinates_devices_array
+                        ]
+        dist_list = [np.sqrt(element) for element in dist_sqr_list]
+        d2bs_dist_matrix[index] = np.array(dist_list)
+
+    return d2bs_dist_matrix
+
 def run_simulation(sim_config_dict):
     """
         In this method, during the backoff slot, it is possible to generate and transmit new packets.
@@ -170,17 +190,8 @@ def run_simulation(sim_config_dict):
     # Save the cumulative interference suffered by device_0 when transmitting message to BS_0
     cumu_itf = []
 
-    # An intermediare data structure for the device-to-base_station distance.
-    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
-    for index, line in enumerate(d2bs_dist_matrix):
-        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
-        # The value is the square of actual distance, whatever, just for selection of nearest BS
-        d2bs_dist_matrix[index] = np.array(
-            [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
-                 for coordinate in coordinates_devices_array])
-
-    # Allocate the nearest base station, according to the min of distance of each row
-    device_base_table = d2bs_dist_matrix.argmin(axis=0)
+    # The physical device-to-bs distance matrix
+    d2bs_dist_matrix = calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array)
     # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
     vectorized_path_loss_f = np.vectorize(path_loss_law)
     path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
@@ -215,14 +226,29 @@ def run_simulation(sim_config_dict):
         curr_trans_matrix = np.apply_along_axis(calculate_sinr, 1, rec_power_levels, threshold, sim_history[slot, :, 0])
 
         curr_trans_results = ''
-        if METHOD in ["BS_NST_ATT", "BS_BEST_ATT"]:
-        # The nearest-base-station approache
+
+        if METHOD == "BS_NST_ATT":
+        # The nearest-base-station approach
+        # The BS selected is the one to which the physical distance between device and BS is smallest
+        # Allocate the nearest base station, according to the min of distance of each row
+            device_base_table = d2bs_dist_matrix.argmin(axis=0)
             curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
+        elif METHOD == "BS_BEST_ATT":
+            # Compared with BS_NST_ATT approach, the only difference is about how to choose the "nearest" BS
+            # For BS_NST_ATT approach, it is so trivial: choose the minimum physical distance.
+            # For best BS attach method, shadowing effect has the "magic" to change the distance between device and BS.
+            # Thus, the "logical"distance is "r*G^{-1/gamma}" (r: physical distance, gamma: path-loss exponent)
+            # Note that path-loss matrix is still the same as the one used in nearest base station
+            shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, size=(bs_nb, device_nb))
+            device_base_table = (d2bs_dist_matrix*np.power(shadowings, -1.0/path_loss)).argmin(axis=0)
+            curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
+
         elif METHOD == "BS_RX_DIVERS":
         # The fire-and-forget approach
             curr_trans_results = np.apply_along_axis(is_retransmited, 0, curr_trans_matrix)
         else:
-            print "No simulated method is specified (BS_NST_ATT or BS_RX_DIVERS), program exit. Please check you simulation configuration JSON file."
+            print "No simulated method is specified (BS_NST_ATT or BS_RX_DIVERS), program exit. " \
+                  "Please check you simulation configuration JSON file."
             exit()
         # Iterate curr_trans_results to proceed retransmission...
         process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans, sim_duration, BACK_OFFS)
@@ -259,7 +285,8 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
         statistics_vector = [int(stat_percent*100), sim_config_dict['ALPHA']]
         item_pairs = itemfreq(trans_index_array)[1:]  # count for items >= 1
         # Attention! Must iterate for item_pairs instead of statistics: item_pairs may just contain counts for 0 and 1
-        for trans_index, element in enumerate(item_pairs):
+        for element in item_pairs:
+            trans_index = element[0] - 1
             statistics[trans_index][1] = element[1]
 
         item_counts = [e[1] for e in statistics]
@@ -305,7 +332,7 @@ def main(sim_config_dict, logs_directory):
         # If one-shot access
         # Some parameters, such as warm time, l, m, back-off time, no need to know...
         output_csv_f_name = \
-            "METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}_".format(**sim_config_dict)
+            "SLOT_METHOD={METHOD}_TRLD={THRESLD}_P={BINOMIAL_P}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}_".format(**sim_config_dict)
         output_csv_f_name +="TMP={}.csv".format(strftime("%Y%m%d%H%M%S"))
 
     else:
