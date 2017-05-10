@@ -80,6 +80,8 @@ if __name__ == '__main__':
     pure_p_f_bs_nst_att_0 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0, True)
     slot_p_f_bs_nst_att_0 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0, False)
 
+    pure_p_f_bs_best_att_8 = sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, True, False)
+
 
     p_f_bs_bst_att_8 = sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False)
 
@@ -103,11 +105,11 @@ if __name__ == '__main__':
     sim_plr_upper_nst_8_pure = [element[2]-element[1] for element in sim_plr_list_nst_8dB]
 
     bs_best_att_sigma_8_pure = glob.glob(os.path.join(
-        "..",  "..", LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "max_interference", "p_0.08_bs_0.008_R_40",
-        "BS_BEST_ATT",  "sigma_8dB_90per", "*.csv")
+        "..",  "..", LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "max_interference", "p_0.008_bs_0.004_R_40",  "BS_BEST_ATT", "sigma_8dB_100per_upper", "*.csv")
     )
     sim_intensity_best_8dB, sim_plr_list_best_8dB = sgam.sim_data_process(bs_best_att_sigma_8_pure)
     sim_plr_best_8_pure = [element[1] for element in sim_plr_list_best_8dB]
+    print sim_plr_best_8_pure
     sim_plr_lower_best_8_pure = [element[1]-element[0] for element in sim_plr_list_best_8dB]
     sim_plr_upper_best_8_pure = [element[2]-element[1] for element in sim_plr_list_best_8dB]
 
@@ -128,6 +130,8 @@ if __name__ == '__main__':
     sim_plr_divers_0_pure = [element[1] for element in sim_plr_list_0dB]
     sim_plr_lower_divers_0_pure = [element[1]-element[0] for element in sim_plr_list_0dB]
     sim_plr_upper_divers_0_pure = [element[2]-element[1] for element in sim_plr_list_0dB]
+
+
 
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)
 
@@ -155,19 +159,30 @@ if __name__ == '__main__':
         capthick=2,
         label="Diversity,SIM,no shadowing")
 
-    axes.errorbar(
-        p*sim_intensity_nst_8dB/lambda_b,
-        sim_plr_nst_8_pure,
-        yerr=[sim_plr_lower_nst_8_pure, sim_plr_upper_nst_8_pure],
-        fmt='d',
-        mfc='g',
-        ecolor='g',
-        capthick=2,
-        label="Nearest,SIM,8dB shadowing"
-    )
+    # axes.errorbar(
+    #     p*sim_intensity_nst_8dB/lambda_b,
+    #     sim_plr_nst_8_pure,
+    #     yerr=[sim_plr_lower_nst_8_pure, sim_plr_upper_nst_8_pure],
+    #     fmt='d',
+    #     mfc='g',
+    #     ecolor='g',
+    #     capthick=2,
+    #     label="Nearest,SIM,8dB shadowing"
+    # )
+
+    # axes.errorbar(
+    #     2*sim_intensity_best_8dB,
+    #     sim_plr_best_8_pure,
+    #     yerr=[sim_plr_lower_best_8_pure, sim_plr_upper_best_8_pure],
+    #     fmt='d',
+    #     mfc='k',
+    #     ecolor='k',
+    #     capthick=2
+    #     # label="Nearest,SIM,8dB shadowing"
+    # )
 
     axes.errorbar(
-        p*sim_intensity_best_8dB/lambda_b,
+        2*sim_intensity_best_8dB,
         sim_plr_best_8_pure,
         yerr=[sim_plr_lower_best_8_pure, sim_plr_upper_best_8_pure],
         fmt='d',
@@ -178,11 +193,17 @@ if __name__ == '__main__':
     )
 
 
-    axes.plot(
-        p*lambda_m/lambda_b,
-        sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
-        color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
-    )
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
+    #     color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
+    # )
+
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
+    #     color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
+    # )
 
     axes.plot(
         p*lambda_m/lambda_b,

@@ -36,8 +36,7 @@ def worker(sim_settings, q):
     q.put(sim_result)
 
 # This function will be vectorized by Numpy in the corp of function run_simluation(**)
-# and run on a matrix where the value in each cell is the square of distance
-# That's why, we multiply 0.5 with input path loss exponent.
+# and run on a matrix where the value in each cell is the distance
 def path_loss_law(dist_square, path_loss_exponent):
     # $r^{-\gamma}$, where r is distance, \gamma is path-loss component
     return np.power(dist_square, -0.5*path_loss_exponent)
@@ -98,17 +97,16 @@ def retransmission():
 
 def crs_prt(pkt_1, pkt_2):
     """
-        Calculate the cross part with other packet
+        Calculate the cross part between two packets
     """
     return max(min(pkt_1[2], pkt_2[2]) - max(pkt_1[1], pkt_2[1]), 0)
 
 def deploy_nodes(width, alpha, intensity_bs):
-    # The involved device number will be one sample from a spatial PPP over a finit disk area
+    # The involved device number will be one sample from a spatial PPP over a finite disk area
     # Generate the needed device nb and base station in this simulation
     AREA_SURFACE = np.pi*np.power(width, 2)
-    device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))
-    # We should have at least one BS
-    bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)
+    device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
+    bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
     # Uniformelly distribute devices and base stations using polar coordinates.
     # We assume that always one device at the origin
     device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
@@ -139,6 +137,26 @@ def nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordina
     path_loss_matrix = np.transpose(path_loss_matrix)
     return device_base_table, path_loss_matrix
 
+def calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array):
+    """
+        This method is used to calculate device-to-BS distance matrix.
+        Each row is a distance vector for a device to each BS
+        Each column is a distance vector for a BS to each device
+    """
+    # An intermediare data structure for the device-to-base_station distance.
+    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
+    for index, line in enumerate(d2bs_dist_matrix):
+        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+        # The value is the square of actual distance
+        dist_sqr_list = [
+                            np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)
+                                -2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
+                            for coordinate in coordinates_devices_array
+                        ]
+        dist_list = [np.sqrt(element) for element in dist_sqr_list]
+        d2bs_dist_matrix[index] = np.array(dist_list)
+
+    return d2bs_dist_matrix
 
 def run_simulation(sim_config_dict):
     """
@@ -164,6 +182,18 @@ def run_simulation(sim_config_dict):
     BETA = np.log(10)/10.0
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
+
+
+
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/path_loss
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    # The only difference between BS_NST_ATT and BS_BEST_ATT is whether to change the intensity of BS
+    if METHOD == "BS_BEST_ATT":
+        intensity_bs *= fm_shadowing
+
+
+
 
     device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, alpha, intensity_bs)
     device_base_table, path_loss_matrix = nodes_location_process(
@@ -248,13 +278,13 @@ def run_simulation(sim_config_dict):
                 # print np.maximum.reduce([start_itf_matrix, end_itf_matrix])
                 # Sum on the basis of column, i.e., cumulative power for each BS. Thus len(cumu_itf_vector) == bs_nb
                 # To avoid 0 in the denominator, add an extremly small value (i.e. machine float epsilon)
-                # cumu_itf_vector = np.maximum.reduce([start_itf_matrix, end_itf_matrix]) + F_EPS - ref_rec_power_vector
+                cumu_itf_vector = np.maximum.reduce([start_itf_matrix, end_itf_matrix]) + F_EPS - ref_rec_power_vector
 
                 # 2017-05-02
                 # we use the upper bound I^{real} <= I^{max} = I^{start} + I^{end},
                 # where I^{real} is the actual cumulative inteference, I^{start} is cumulative at the start moment of a
                 # slot, I^{end} is cumulative interference at the end moment of a slot.
-                cumu_itf_vector = start_itf_matrix + end_itf_matrix + F_EPS - ref_rec_power_vector
+                # cumu_itf_vector = start_itf_matrix + end_itf_matrix + F_EPS - 2*ref_rec_power_vector
                 # The failure state of a device at all BS.
                 # For BS_RX_DIVERS, if any of this list is false (i.e., successful transmission)
                 # For BS_NST_ATT, we just care about the state of attached BS.
@@ -262,6 +292,24 @@ def run_simulation(sim_config_dict):
 
                 # Process with received SINR at the BS side.
                 if METHOD == "BS_NST_ATT":
+                    if ref_rec_sinr_vector[device_base_table[device_id]]:
+                        # True => sinr < thresold => failure => retransmission procedure
+                        #Todo: to be implemented. This method. For one-shot acess, we can leave it empty...
+                        retransmission()
+                        sim_history[slot_index][device_id] = 2.0
+
+                    else:
+                        # successful transmission. Do some clean work.
+                        sim_history[slot_index][device_id] = 1.0
+                elif METHOD == "BS_BEST_ATT":
+                    # Compared with BS_NST_ATT approach, the only difference is about how to choose the "nearest" BS
+                    # For BS_NST_ATT approach, it is so trivial: choose the minimum physical distance.
+                    # For best BS attach method, shadowing effect has the "magic" to change the distance between device and BS.
+                    # Thus, the "logical"distance is "r*G^{-1/gamma}" (r: physical distance, gamma: path-loss exponent)
+                    # Note that path-loss matrix is still the same as the one used in nearest base station
+                    d2bs_dist_matrix = calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array)
+                    shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, size=(bs_nb, device_nb))
+                    device_base_table = (d2bs_dist_matrix*np.power(shadowings, -1.0/path_loss)).argmin(axis=0)
                     if ref_rec_sinr_vector[device_base_table[device_id]]:
                         # True => sinr < thresold => failure => retransmission procedure
                         #Todo: to be implemented. This method. For one-shot acess, we can leave it empty...
@@ -321,7 +369,8 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
         statistics_vector = [int(stat_percent*100), sim_config_dict['ALPHA']]
         item_pairs = itemfreq(trans_index_array)[1:]  # count for items >= 1
         # Attention! Must iterate for item_pairs instead of statistics: item_pairs may just contain counts for 0 and 1
-        for trans_index, element in enumerate(item_pairs):
+        for element in item_pairs:
+            trans_index = element[0]-1
             statistics[trans_index][1] = element[1]
 
         item_counts = [e[1] for e in statistics]
@@ -367,7 +416,7 @@ def main(sim_config_dict, logs_directory):
         # If one-shot access
         # Some parameters, such as warm time, l, m, back-off time, no need to know...
         output_csv_f_name = \
-            "METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}_".format(**sim_config_dict)
+            "PURE_MAX_METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}_".format(**sim_config_dict)
         output_csv_f_name +="TMP={}.csv".format(strftime("%Y%m%d%H%M%S"))
 
     else:
@@ -425,7 +474,7 @@ if __name__ == "__main__":
     # SIM_PART = 'fading_shadowing'
     # SIM_PART = 'perfect'
     SIM_PART = 'bs_rx_divers'
-    SIM_CONFIG_FILE = 'case_K=1_l=1_m=1_threshold=3dB.json'
+    SIM_CONFIG_FILE = 'case_MAXITF_K=1_threshold=3dB.json'
     # Check the existence of "logs" folder and create it if necessary.
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)

@@ -72,6 +72,16 @@ if __name__ == '__main__':
         "sigma_8dB_50per", "*.csv")
     )
 
+    # bs_nst_att_sigma_8 = glob.glob(os.path.join(
+    #     "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_NST_ATT", "p_0.008_bs_0.004_R_40",
+    #     "sigma_8dB_100per", "*.csv")
+    # )
+
+    bs_best_att_sigma_8 = glob.glob(os.path.join(
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_BEST_ATT", "p_0.008_bs_0.004_R_40_no_change_bs_intensity",
+        "sigma_8dB_100per", "*.csv")
+    )
+
     bs_nst_att_sigma_0 = glob.glob(os.path.join(
         "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_NST_ATT", "p_0.002_bs_0.01_R_25",
         "sigma_0dB_50per", "*.csv")
@@ -81,6 +91,8 @@ if __name__ == '__main__':
     sim_intensity_0dB, sim_plr_list_0dB = sgam.sim_data_process(bs_rx_div_sigma_0)
     sim_intensity_8dB, sim_plr_list_8dB = sgam.sim_data_process(bs_rx_div_sigma_8)
     sim_intensity_nst_8dB, sim_plr_list_nst_8dB = sgam.sim_data_process(bs_nst_att_sigma_8)
+    sim_intensity_best_8dB, sim_plr_list_best_8dB = sgam.sim_data_process(bs_best_att_sigma_8)
+
     sim_intensity_nst_0dB, sim_plr_list_nst_0dB = sgam.sim_data_process(bs_nst_att_sigma_0)
 
     # sim_intensity_4, sim_plr_list_4 = sim_data_process(logs_dir_4)
@@ -104,9 +116,9 @@ if __name__ == '__main__':
     sim_plr_lower_nst_0 = [element[1]-element[0] for element in sim_plr_list_nst_0dB]
     sim_plr_upper_nst_0 = [element[2]-element[1] for element in sim_plr_list_nst_0dB]
     #
-    # sim_plr_5 = [element[1] for element in sim_plr_list_5]
-    # sim_plr_lower_5 = [element[1]-element[0] for element in sim_plr_list_5]
-    # sim_plr_upper_5 = [element[2]-element[1] for element in sim_plr_list_5]
+    sim_plr_best_8 = [element[1] for element in sim_plr_list_best_8dB]
+    sim_plr_lower_best_8 = [element[1]-element[0] for element in sim_plr_list_best_8dB]
+    sim_plr_upper_best_8 = [element[2]-element[1] for element in sim_plr_list_best_8dB]
 
     # 生成 lambda_m 的 ndarray
     lambda_m = np.linspace(0, X_END, 1000)
@@ -184,16 +196,28 @@ if __name__ == '__main__':
         capthick=2,
         label="Nearest SIM,no shadowing"
     )
+    # axes.errorbar(
+    #     sim_intensity_nst_8dB/5.0,
+    #     sim_plr_nst_8,
+    #     yerr=[sim_plr_lower_nst_8, sim_plr_upper_nst_8],
+    #     fmt='d',
+    #     mfc='g',
+    #     ecolor='g',
+    #     capthick=2,
+    #     label="Nearest SIM,8dB shadowing"
+    # )
+
     axes.errorbar(
-        sim_intensity_nst_8dB/5.0,
-        sim_plr_nst_8,
-        yerr=[sim_plr_lower_nst_8, sim_plr_upper_nst_8],
+        sim_intensity_best_8dB*2.0,
+        sim_plr_best_8,
+        yerr=[sim_plr_lower_best_8, sim_plr_upper_best_8],
         fmt='d',
-        mfc='g',
-        ecolor='g',
+        mfc='k',
+        ecolor='k',
         capthick=2,
-        label="Nearest SIM,8dB shadowing"
+        label="Best SIM,8dB shadowing"
     )
+
 
     axes.grid()
     # axes.set_xticks(np.arange(X_START, X_END, X_STEP))

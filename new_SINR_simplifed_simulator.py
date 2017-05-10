@@ -169,8 +169,8 @@ def run_simulation(sim_config_dict):
     sigma_X = 2.0*sigma/path_loss
     fm_shadowing = np.exp(0.5*sigma_X**2)
     # The only difference between BS_NST_ATT and BS_BEST_ATT is whether to change the intensity of BS
-    if METHOD == "BS_BEST_ATT":
-        intensity_bs *= fm_shadowing
+    # if METHOD == "BS_BEST_ATT":
+    #     intensity_bs *= fm_shadowing
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
     # The involved device number will be one sample from a spatial PPP over a finit disk area
@@ -241,6 +241,7 @@ def run_simulation(sim_config_dict):
             # Note that path-loss matrix is still the same as the one used in nearest base station
             shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, size=(bs_nb, device_nb))
             device_base_table = (d2bs_dist_matrix*np.power(shadowings, -1.0/path_loss)).argmin(axis=0)
+            # device_base_table = d2bs_dist_matrix.argmin(axis=0)
             curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
 
         elif METHOD == "BS_RX_DIVERS":
