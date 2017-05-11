@@ -1,5 +1,5 @@
 {
-"METHOD":       "BS_BEST_ATT",
+"METHOD":       "BS_NST_ATT",
 "MAX_TRANS":    1,
 "L":            1,
 "M":            1,
@@ -17,8 +17,9 @@
 "SIM_REPEAT_NB": 30,
 "MU_FADING":    1.0,
 "MU_SHADOWING": 0.0,
-"SIGMA_SHADOWING": 8.0,
+"SIGMA_SHADOWING": 4.0,
 "WIDTH": 40,
+"COORD_TYPE" : "Polar",
 "PATH_LOSS": 4,
 "NB_PROCESS": 6
 }

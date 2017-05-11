@@ -7,6 +7,7 @@ from time import time
 import multiprocessing as mp
 import csv
 import os
+import sys
 import json
 from time import strftime
 import pandas as pd
@@ -37,12 +38,20 @@ def worker(sim_settings, q):
 
 # This function will be vectorized by Numpy in the corp of function run_simluation(**)
 # and run on a matrix where the value in each cell is the distance between a BS and device
-def path_loss_law(dist_square, path_loss_exponent):
+def path_loss_law(dist, path_loss_exponent):
     # $r^{-\gamma}$, where r is distance, \gamma is path-loss component
-    return np.power(dist_square, -1.0*path_loss_exponent)
+    return np.power(dist, -1.0*path_loss_exponent)
 
 
 def calculate_sinr(rec_power_vector, threshold, curr_slot_trans_index):
+    """
+
+    :param rec_power_vector:                a list of received power at each BS;
+    :param threshold:                       capture ration, unit dB, typically 3dB
+    :param curr_slot_trans_index:           a list of transmission index, 0=> no transmission, 1=>first trial
+    :return:
+            trans_state_result:             a list of bool type. True=> transmission False=> Success or no transmission
+    """
     # curr_slot_trans_index = sim_history[slot, :, 0]
     # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
     total_p = np.sum(rec_power_vector)
@@ -59,9 +68,9 @@ def process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans,
     :return: None.
     """
     for device_id, curr_trans_result in enumerate(curr_trans_results):
-        # 如果 curr_trans_result = True，则需要对这个包执行重传操作
+        # curr_trans_result = True <=> SINR < threshold <=> Transmission Failure <=> Retransmission
         if curr_trans_result:
-            # 需要知道，这是第几次传输失败了
+            # Need to know which transmission trial failed? the first one? second one?...
             # Don't forget to convert x into int type.
             x = np.int(sim_history[slot, device_id, 0])
             if x != max_trans:
@@ -121,24 +130,104 @@ def output_simulation_csv():
     """
     return 0
 
-def calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array):
+def deploy_nodes(width, alpha, intensity_bs, coord_type="Polar"):
+    """
+    :param width:                       the radius of simulation area
+    :param alpha:                       the active device intensity (Note: not transmitting device intensity)
+    :param intensity_bs:                the Base Station spatial intensity
+    :param coord_type:                  the coordination type of simulation area. either Polar Coordinates  or Cartesian Coordinates
+    :return: device_nb:                 the number of devices involved in simulation
+             bs_nb:                     the number of Base Stations involved in simulation
+             coordinates_devices_array: the list of tuple, each tuple represents for the coordination pair for a device
+             coordinates_bs_array:      the list of tuple, each tuple represents for the coordination pair for a BS
+    """
+    # The involved device number will be one sample from a spatial PPP over a finite disk area
+    # Generate the needed device nb and base station in this simulation
+    if coord_type == "Polar":
+        AREA_SURFACE = np.pi*np.power(width, 2)
+        device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
+        bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
+        # Uniformly distribute devices and base stations using polar coordinates.
+        # We assume that always one device at the origin
+        device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
+        device_arguments = np.random.uniform(-np.pi, np.pi, device_nb)
+        coordinates_devices_array = zip(device_rho, device_arguments)
+        bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
+        bs_arguments = np.random.uniform(-np.pi, np.pi, bs_nb)
+        coordinates_bs_array = zip(bs_rho, bs_arguments)
+    elif coord_type == "Cartesian":
+        AREA_SURFACE = np.power(width, 2)
+        device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
+        bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
+        device_x = np.random.uniform(0, width, device_nb)
+        device_y = np.random.uniform(0, width, device_nb)
+        coordinates_devices_array = zip(device_x, device_y)
+        bs_x = np.random.uniform(0, width, bs_nb)
+        bs_y = np.random.uniform(0, width, bs_nb)
+        coordinates_bs_array = zip(bs_x, bs_y)
+    else:
+        sys.exit("Error! Unknown coordinates type. Either Polar or Cartesian")
+
+    return device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array
+
+def nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss, coord_type="Polar"):
+    """
+
+    :param device_nb:                       the number of devices involved in simulation
+    :param bs_nb:                           the number of BS involved in simulation
+    :param coordinates_devices_array:       the list of tuple for device coordinates
+    :param coordinates_bs_array:            the list of tuple for Base Station coordinates
+    :param path_loss:                       the path-loss function, the most simple form is r^{-gamma}
+    :param coord_type:                      the coordinates type, either polar or Cartesian
+    :return: path_loss_matrix:              a matrix of dimension device_nb * bs_nb,
+                                            An intermediare data structure for the device-to-base_station distance.
+    """
+    d2bs_dist_matrix = \
+        calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array, coord_type)
+
+    # Allocate the geographically nearest base station, according to the min of distance of each column
+    # device_base_table save the index of BS to which the device attaches
+    device_base_table = d2bs_dist_matrix.argmin(axis=0)
+    # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
+    vectorized_path_loss_f = np.vectorize(path_loss_law)
+    # A maxtrix of size: DEVICE_NB * BS_NB
+    path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
+    #TODO: why we need to transpose matrix "path_loss_matrix"? I think not necessary. comment it!
+    # path_loss_matrix = np.transpose(path_loss_matrix)
+    return device_base_table, path_loss_matrix
+
+def calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array, coord_type="Polar"):
     """
         This method is used to calculate device-to-BS distance matrix.
-        Each row is a distance vector for a device to each BS
-        Each column is a distance vector for a BS to each device
+        Each row is a distance vector for a BS to each device
+        Each column is a distance vector for a device to each BS
+    :param bs_nb:
+    :param device_nb:
+    :param coordinates_bs_array:
+    :param coordinates_devices_array:
+    :param coord_type:
+    :return: d2bs_dist_matrix:  matrix of distance, each cell is a distance between a device and BS pair.
     """
     # An intermediare data structure for the device-to-base_station distance.
     d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
-    for index, line in enumerate(d2bs_dist_matrix):
-        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
-        # The value is the square of actual distance
-        dist_sqr_list = [
-                            np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)
-                                -2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
-                            for coordinate in coordinates_devices_array
-                        ]
-        dist_list = [np.sqrt(element) for element in dist_sqr_list]
-        d2bs_dist_matrix[index] = np.array(dist_list)
+    if coord_type == "Polar":
+        for index, line in enumerate(d2bs_dist_matrix):
+            # index => index of BS
+            curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+            # The value is the square of actual distance, whatever, just for selection of nearest BS
+            tmp_array = np.array(
+                [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
+                     for coordinate in coordinates_devices_array])
+            d2bs_dist_matrix[index] = np.sqrt(tmp_array)
+
+    elif coord_type == "Cartesian":
+        for index, line in enumerate(d2bs_dist_matrix):
+            # index => index of BS
+            curr_bs_x, curr_bs_y = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+            # The value is the square of actual distance, whatever, just for selection of nearest BS
+            tmp_array = np.array(
+                [np.power(coordinate[0] - curr_bs_x, 2)+np.power(coordinate[1]-curr_bs_y, 2) for coordinate in coordinates_devices_array])
+            d2bs_dist_matrix[index] = np.sqrt(tmp_array)
 
     return d2bs_dist_matrix
 
@@ -146,14 +235,16 @@ def run_simulation(sim_config_dict):
     """
         In this method, during the backoff slot, it is possible to generate and transmit new packets.
         Only the packets generated during the slot scheduled for retransmission will be abandoned.
-        In addition, when choosing the backoff slot, make sure that the choosed slot is not scheduled
+        In addition, when choosing the backoff slot, make sure that the selected slot is not scheduled
         for retransmission. Otherwise continue to choose the backoff slot until the allowed one.
+    :param sim_config_dict:                 the dict which contains all simulation settings.
+    :return:
     """
-    # Create a minimum float number, which is extremely to zero, cause np.lognormal does not accept 0
     start_t = int(time())
     seed = hash(hash(os.urandom(os.getpid()))) % 4294967295 # np.seed [0, 4294967295]
     np.random.seed(seed)
 
+    # Create an extremely small float number and add it to shadowing standard error => np.lognormal does not accept 0
     F_EPS = np.finfo(float).eps
     METHOD = sim_config_dict['METHOD']
     binomial_p, alpha, intensity_bs = sim_config_dict["BINOMIAL_P"], sim_config_dict['ALPHA'], sim_config_dict["INTENSITY_BS"]
@@ -161,37 +252,27 @@ def run_simulation(sim_config_dict):
     threshold = sim_config_dict['THRESLD']
     max_trans, l, m = sim_config_dict['MAX_TRANS'], sim_config_dict['L'], sim_config_dict['M']
     mu_fading,  mu_shadowing, sigma_dB = sim_config_dict['MU_FADING'], sim_config_dict['MU_SHADOWING'], sim_config_dict['SIGMA_SHADOWING']
-    sigma_dB += F_EPS
     width, path_loss = sim_config_dict["WIDTH"], sim_config_dict['PATH_LOSS']
+    coord_type = sim_config_dict['COORD_TYPE']
 
+    sigma_dB += F_EPS
     BETA = np.log(10)/10.0
     sigma = BETA*sigma_dB
-    sigma_X = 2.0*sigma/path_loss
-    fm_shadowing = np.exp(0.5*sigma_X**2)
+
+    # sigma_X = 2.0*sigma/path_loss
+    # fm_shadowing = np.exp(0.5*sigma_X**2)
     # The only difference between BS_NST_ATT and BS_BEST_ATT is whether to change the intensity of BS
     # if METHOD == "BS_BEST_ATT":
     #     intensity_bs *= fm_shadowing
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
-    # The involved device number will be one sample from a spatial PPP over a finit disk area
-    # Generate the needed device nb and base station in this simulation
-    AREA_SURFACE = np.pi*np.power(width, 2)
-    device_nb = max(int(np.random.poisson(alpha*AREA_SURFACE, 1)), 1)
-    # We should have at least one BS
-    bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)
-    # Uniformelly distribute devices and base stations using polar coordinates.
-    # We assume that always one device at the origin
-    device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
-    device_arguments = np.random.uniform(-np.pi-10e-4, np.pi+10e-4, device_nb)
-    coordinates_devices_array = zip(device_rho, device_arguments)
-    bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
-    bs_arguments = np.random.uniform(-np.pi-10e-4, np.pi+10e-4, bs_nb)
-    coordinates_bs_array = zip(bs_rho, bs_arguments)
-    # Save the cumulative interference suffered by device_0 when transmitting message to BS_0
-    cumu_itf = []
+
+    device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array \
+        = deploy_nodes(width, alpha, intensity_bs, coord_type=coord_type)
+
 
     # The physical device-to-bs distance matrix
-    d2bs_dist_matrix = calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array)
+    d2bs_dist_matrix = calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array, coord_type)
     # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
     vectorized_path_loss_f = np.vectorize(path_loss_law)
     path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
@@ -210,7 +291,8 @@ def run_simulation(sim_config_dict):
             [bernoulli.rvs(binomial_p) if k == 0.0 else k for k in sim_history[slot, :, 0]]
         )
         rec_power_levels = np.tile(np.array([LM[int(k)] for k in sim_history[slot, :, 0]]), (bs_nb, 1))
-        shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, size=(bs_nb, device_nb))
+        # xavier says that, shadowing is associated with its location => fixed location, fixed shadowing
+        shadowings = np.random.lognormal(BETA*mu_shadowing, sigma, size=(bs_nb, device_nb))
         fadings = np.random.exponential(scale=mu_fading, size=(bs_nb, device_nb))
         # 将每个slot，每个设备消耗的能量，存进 energy_history. 我们假设整个slot都以恒定的功率传输数据(不知道这个假设效果如何)
         for device_id, trans_index in enumerate(sim_history[slot, :, 0]):
@@ -232,6 +314,7 @@ def run_simulation(sim_config_dict):
         # The BS selected is the one to which the physical distance between device and BS is smallest
         # Allocate the nearest base station, according to the min of distance of each row
             device_base_table = d2bs_dist_matrix.argmin(axis=0)
+            # device_base_table[i] => index of attached BS, index of row
             curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
         elif METHOD == "BS_BEST_ATT":
             # Compared with BS_NST_ATT approach, the only difference is about how to choose the "nearest" BS
@@ -239,9 +322,10 @@ def run_simulation(sim_config_dict):
             # For best BS attach method, shadowing effect has the "magic" to change the distance between device and BS.
             # Thus, the "logical"distance is "r*G^{-1/gamma}" (r: physical distance, gamma: path-loss exponent)
             # Note that path-loss matrix is still the same as the one used in nearest base station
-            shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, size=(bs_nb, device_nb))
+            # shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, size=(bs_nb, device_nb))
             device_base_table = (d2bs_dist_matrix*np.power(shadowings, -1.0/path_loss)).argmin(axis=0)
-            # device_base_table = d2bs_dist_matrix.argmin(axis=0)
+            if not len(device_base_table) == device_nb:
+                raise AssertionError()
             curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
 
         elif METHOD == "BS_RX_DIVERS":
@@ -433,7 +517,7 @@ if __name__ == "__main__":
             # If one-shot access
             # Some parameters, such as warm time, l, m, back-off time, no need to know...
             output_csv_f_name = \
-                "METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}".format(**sim_config_dict)
+                "Slotted_METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}".format(**sim_config_dict)
 
         else:
             output_csv_f_name ="METHOD={METHOD}_SIMD={SIM_DURATION}_WARM={WARM_UP}_MAXTR={MAX_TRANS}_BSITSY={INTENSITY_BS}_TRLD={THRESLD}dB_l={L}_m={M}_backoff={BACKOFF}_".format(**sim_config_dict)

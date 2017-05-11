@@ -135,8 +135,8 @@ if __name__ == '__main__':
     # Define p_f_2 as the outage probability over infinite plane
     p_f_rx_div_0 = sgam.bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0)
     p_f_bs_nst_att_0 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0)
-    p_f_bs_nst_att_8 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8)
-    p_f_bs_bst_att_8 = sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8)
+    p_f_bs_nst_att_8 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 4)
+    p_f_bs_bst_att_8 = sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 4)
 
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)
 
