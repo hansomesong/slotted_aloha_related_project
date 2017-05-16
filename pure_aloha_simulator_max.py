@@ -13,7 +13,6 @@ from scipy.stats import itemfreq
 # One process for writing an entry(a row in the context of CSV file) into the given CSV file.
 # The advantage is to avoid the concurrence about the write access to target CSV file.
 def listener(sim_result_f, q):
-    # 经过一晚上的奋战，终于找到BUG所在了！！！
     while 1:
             df_row = q.get()
             # 如果从 (被N多个进程共享的) result queue 中提取到了 字符串 ‘TERMINATE’，那么结束listener进程
@@ -79,9 +78,9 @@ def process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans,
                             sim_history[new_slot, device_id, 0] = x+1
                             # Retransmission scheduling work is done. Break from while loop...
                             break
-                    # 为什么这里 我要break呢？我觉得应该注释掉啊。。。
-                    # 我知道了 是因为到 simulation 的最后阶段，几乎已经不太可能在 simulation 时间范围内找到合适的 new_slot了
-                    # 所以 这种情况直接视为 已经在未来找到了合适的slot做 retransmission, 选择直接 break
+                    # The reason to use break here is:
+                    # At the end of simulation, it is almost impossible to find a future slot for the
+                    # retransmission. Thus, we regard this case as if we had already found a slot
                     else:
                         break
                 # Do not forget to reinitialize for this (slot, device) pair .
@@ -91,11 +90,15 @@ def process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans,
                 sim_history[slot, device_id, 0] = max_trans + 1
 
 def retransmission():
+    #TODO: since until now, we just consider the one-shot random access. No need to implement logic for retransmission
     pass
 
 def crs_prt(pkt_1, pkt_2):
     """
-        Calculate the cross part between two packets
+            Calculate the cross part between two packets
+    :param pkt_1: one packet, a list of three elements
+    :param pkt_2: the other packet to be calculated cross part, a list of three elements
+    :return:
     """
     return max(min(pkt_1[2], pkt_2[2]) - max(pkt_1[1], pkt_2[1]), 0)
 
@@ -238,11 +241,11 @@ def run_simulation(sim_config_dict):
     sigma_dB += F_EPS
     width, path_loss = sim_config_dict["WIDTH"], sim_config_dict['PATH_LOSS']
     coord_type = sim_config_dict['COORD_TYPE']
+    cumu_itf_bound = sim_config_dict['CUMU_ITF_BOUND']
 
     BETA = np.log(10)/10.0
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
-
 
 
     sigma = BETA*sigma_dB
@@ -333,8 +336,6 @@ def run_simulation(sim_config_dict):
                 crs_prt_1_matrix = np.tile(crs_prt_1, (bs_nb, 1)).transpose()
                 crs_prt_2_matrix = np.tile(crs_prt_2, (bs_nb, 1)).transpose()
 
-                # The cumulative interference depends on "mean mode" or "max mode"
-                # if ITF_MODE == "MEAN":
                 start_itf_matrix = (rec_power_history[slot_index-1]*crs_prt_1_matrix).sum(axis=0)
                 end_itf_matrix = (rec_power_history[slot_index]*crs_prt_2_matrix).sum(axis=0)
 
@@ -346,20 +347,19 @@ def run_simulation(sim_config_dict):
                     print "last slot", slot_index-1, rec_power_history[slot_index-1, device_id]
                     print "current slot", slot_index, ref_rec_power_vector
                     exit()
-                #
-                # print start_itf_matrix
-                # print end_itf_matrix
-                # print np.maximum.reduce([start_itf_matrix, end_itf_matrix])
+
                 # Sum on the basis of column, i.e., cumulative power for each BS. Thus len(cumu_itf_vector) == bs_nb
                 # To avoid 0 in the denominator, add an extremly small value (i.e. machine float epsilon)
-                cumu_itf_vector = np.maximum.reduce([start_itf_matrix, end_itf_matrix]) + F_EPS - ref_rec_power_vector
-
-
+                if cumu_itf_bound.upper() == "LOWER":
+                    cumu_itf_vector = np.maximum.reduce([start_itf_matrix, end_itf_matrix]) + F_EPS - ref_rec_power_vector
                 # 2017-05-02
                 # we use the upper bound I^{real} <= I^{max} = I^{start} + I^{end},
-                # where I^{real} is the actual cumulative inteference, I^{start} is cumulative at the start moment of a
+                # where I^{real} is the actual cumulative interference, I^{start} is cumulative at the start moment of a
                 # slot, I^{end} is cumulative interference at the end moment of a slot.
-                # cumu_itf_vector = start_itf_matrix + end_itf_matrix + F_EPS - 2*ref_rec_power_vector
+                elif cumu_itf_bound.upper() == "UPPER":
+                    cumu_itf_vector = start_itf_matrix + end_itf_matrix + F_EPS - 2*ref_rec_power_vector
+                else:
+                    sys.exit("Cumulative Interference should be either lower or uppper!")
                 # The failure state of a device at all BS.
                 # For BS_RX_DIVERS, if any of this list is false (i.e., successful transmission)
                 # For BS_NST_ATT, we just care about the state of attached BS.
@@ -425,9 +425,6 @@ def run_simulation(sim_config_dict):
 
 def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history, trans_power_history):
     # Remove the statistics in the border area. Particularly important for BS reception diversity.
-    # print "In statistics.s..."
-    # print sim_history
-    # print trans_power_history
     width = sim_config_dict["WIDTH"]
     sim_duration, warm_t = sim_config_dict['SIM_DURATION'], sim_config_dict['WARM_UP']
     max_trans = sim_config_dict['MAX_TRANS']
@@ -494,7 +491,7 @@ def main(sim_config_dict, logs_directory):
         # If one-shot access
         # Some parameters, such as warm time, l, m, back-off time, no need to know...
         output_csv_f_name = \
-            "PURE_MAX_METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}_".format(**sim_config_dict)
+            "PURE_MAX_BOUND_{CUMU_ITF_BOUND}_METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}_".format(**sim_config_dict)
         output_csv_f_name +="TMP={}.csv".format(strftime("%Y%m%d%H%M%S"))
 
     else:

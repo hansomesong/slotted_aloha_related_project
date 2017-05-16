@@ -20,6 +20,7 @@
 "SIGMA_SHADOWING": 8.0,
 "WIDTH": 40,
 "COORD_TYPE" : "Polar",
+"CUMU_ITF_BOUND": "Upper",
 "PATH_LOSS": 4,
 "NB_PROCESS": 2
 }
