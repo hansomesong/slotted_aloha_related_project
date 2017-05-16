@@ -534,7 +534,8 @@ if __name__ == "__main__":
             # If one-shot access
             # Some parameters, such as warm time, l, m, back-off time, no need to know...
             output_csv_f_name = \
-                "Slotted_METHOD={METHOD}_TRLD={THRESLD}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}".format(**sim_config_dict)
+                "Slotted_METHOD={METHOD}_TRLD={THRESLD}_P={BINOMIAL_P}_ALPHA={ALPHA}_BSDENSITY={INTENSITY_BS}_" \
+                "FADING={MU_FADING}_SHADOW={SIGMA_SHADOWING}_R={WIDTH}".format(**sim_config_dict)
 
         else:
             output_csv_f_name ="METHOD={METHOD}_SIMD={SIM_DURATION}_WARM={WARM_UP}_MAXTR={MAX_TRANS}_BSITSY={INTENSITY_BS}_TRLD={THRESLD}dB_l={L}_m={M}_backoff={BACKOFF}_".format(**sim_config_dict)
