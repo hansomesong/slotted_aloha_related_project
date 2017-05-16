@@ -16,7 +16,6 @@ from scipy.stats import itemfreq
 # One process for writing an entry(a row in the context of CSV file) into the given CSV file.
 # The advantage is to avoid the concurrence about the write access to target CSV file.
 def listener(sim_result_f, q):
-    # 经过一晚上的奋战，终于找到BUG所在了！！！
     while 1:
             df_row = q.get()
             # 如果从 (被N多个进程共享的) result queue 中提取到了 字符串 ‘TERMINATE’，那么结束listener进程
@@ -130,23 +129,40 @@ def output_simulation_csv():
     """
     return 0
 
-def deploy_nodes(width, alpha, intensity_bs, coord_type="Polar"):
+def get_involved_nodes_nb(width, alpha, intensity_bs, coord_type="Polar"):
     """
     :param width:                       the radius of simulation area
     :param alpha:                       the active device intensity (Note: not transmitting device intensity)
     :param intensity_bs:                the Base Station spatial intensity
+    :return:
+    """
+    if coord_type == "Polar":
+        AREA_SURFACE = np.pi*np.power(width, 2)
+        # device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
+        # bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
+        device_nb = int(alpha*AREA_SURFACE)                   # At least one device
+        bs_nb = int(intensity_bs*AREA_SURFACE)   # At least one BS
+    elif coord_type == "Cartesian":
+        AREA_SURFACE = np.power(width, 2)
+        device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
+        bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
+    else:
+        sys.exit("Error! Unknown coordinates type. Either Polar or Cartesian")
+    return device_nb, bs_nb
+
+def deploy_nodes(width, device_nb, bs_nb, coord_type="Polar"):
+    """
+    :param width:                       the radius of simulation area
+    :param device_nb:                   the active device number (Note: not transmitting device number)
+    :param bs_nb:                       the Base Station number
     :param coord_type:                  the coordination type of simulation area. either Polar Coordinates  or Cartesian Coordinates
-    :return: device_nb:                 the number of devices involved in simulation
-             bs_nb:                     the number of Base Stations involved in simulation
-             coordinates_devices_array: the list of tuple, each tuple represents for the coordination pair for a device
-             coordinates_bs_array:      the list of tuple, each tuple represents for the coordination pair for a BS
+    :return:
+            coordinates_devices_array: the list of tuple, each tuple represents for the coordination pair for a device
+            coordinates_bs_array:      the list of tuple, each tuple represents for the coordination pair for a BS
     """
     # The involved device number will be one sample from a spatial PPP over a finite disk area
     # Generate the needed device nb and base station in this simulation
     if coord_type == "Polar":
-        AREA_SURFACE = np.pi*np.power(width, 2)
-        device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
-        bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
         # Uniformly distribute devices and base stations using polar coordinates.
         # We assume that always one device at the origin
         device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
@@ -156,9 +172,6 @@ def deploy_nodes(width, alpha, intensity_bs, coord_type="Polar"):
         bs_arguments = np.random.uniform(-np.pi, np.pi, bs_nb)
         coordinates_bs_array = zip(bs_rho, bs_arguments)
     elif coord_type == "Cartesian":
-        AREA_SURFACE = np.power(width, 2)
-        device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
-        bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
         device_x = np.random.uniform(0, width, device_nb)
         device_y = np.random.uniform(0, width, device_nb)
         coordinates_devices_array = zip(device_x, device_y)
@@ -168,7 +181,7 @@ def deploy_nodes(width, alpha, intensity_bs, coord_type="Polar"):
     else:
         sys.exit("Error! Unknown coordinates type. Either Polar or Cartesian")
 
-    return device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array
+    return coordinates_devices_array, coordinates_bs_array
 
 def nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss, coord_type="Polar"):
     """
@@ -194,7 +207,7 @@ def nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordina
     path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
     #TODO: why we need to transpose matrix "path_loss_matrix"? I think not necessary. comment it!
     # path_loss_matrix = np.transpose(path_loss_matrix)
-    return device_base_table, path_loss_matrix
+    return d2bs_dist_matrix, device_base_table, path_loss_matrix
 
 def calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array, coord_type="Polar"):
     """
@@ -259,23 +272,19 @@ def run_simulation(sim_config_dict):
     BETA = np.log(10)/10.0
     sigma = BETA*sigma_dB
 
-    # sigma_X = 2.0*sigma/path_loss
-    # fm_shadowing = np.exp(0.5*sigma_X**2)
-    # The only difference between BS_NST_ATT and BS_BEST_ATT is whether to change the intensity of BS
-    # if METHOD == "BS_BEST_ATT":
-    #     intensity_bs *= fm_shadowing
-    # The vector format of back off values allows to implement different backoff for each retransmission
+    sigma_X = 2.0*sigma/path_loss
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    # # The only difference between BS_NST_ATT and BS_BEST_ATT is whether to change the intensity of BS
+    if METHOD == "BS_BEST_ATT":
+        intensity_bs *= fm_shadowing
+    # # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
 
-    device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array \
-        = deploy_nodes(width, alpha, intensity_bs, coord_type=coord_type)
+    device_nb, bs_nb = get_involved_nodes_nb(width, alpha, intensity_bs, coord_type)
+    coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, device_nb, bs_nb, coord_type)
 
-
-    # The physical device-to-bs distance matrix
-    d2bs_dist_matrix = calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array, coord_type)
-    # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
-    vectorized_path_loss_f = np.vectorize(path_loss_law)
-    path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
+    d2bs_dist_matrix, device_base_table, path_loss_matrix = \
+        nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss, coord_type)
 
     # Now Add one zero in the beginning of LM list, to facilitate the generation of
     # Then each element in LM list represents the transmit power for the kth transmission (Not retransmission).
@@ -286,6 +295,11 @@ def run_simulation(sim_config_dict):
     # The third dimension is used to represent the transmission index and received power levels history
     sim_history = np.zeros((sim_duration, device_nb, max_trans+1), dtype=np.float)
     for slot in range(sim_duration):
+        # For each transmission, regenerate new coordinates for all nodes
+        # coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, device_nb, bs_nb, coord_type)
+        #
+        # device_base_table, path_loss_matrix = \
+        #     nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss, coord_type)
         # First generate new packets. k refers to the k th transmision instead of retransmission
         sim_history[slot, :, 0] = np.array(
             [bernoulli.rvs(binomial_p) if k == 0.0 else k for k in sim_history[slot, :, 0]]
@@ -313,7 +327,6 @@ def run_simulation(sim_config_dict):
         # The nearest-base-station approach
         # The BS selected is the one to which the physical distance between device and BS is smallest
         # Allocate the nearest base station, according to the min of distance of each row
-            device_base_table = d2bs_dist_matrix.argmin(axis=0)
             # device_base_table[i] => index of attached BS, index of row
             curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
         elif METHOD == "BS_BEST_ATT":
@@ -322,10 +335,12 @@ def run_simulation(sim_config_dict):
             # For best BS attach method, shadowing effect has the "magic" to change the distance between device and BS.
             # Thus, the "logical"distance is "r*G^{-1/gamma}" (r: physical distance, gamma: path-loss exponent)
             # Note that path-loss matrix is still the same as the one used in nearest base station
-            # shadowings = np.random.lognormal(BETA*mu_shadowing, BETA*sigma_dB, size=(bs_nb, device_nb))
-            device_base_table = (d2bs_dist_matrix*np.power(shadowings, -1.0/path_loss)).argmin(axis=0)
-            if not len(device_base_table) == device_nb:
-                raise AssertionError()
+            # shadowings = np.ones((bs_nb, device_nb))
+            # shadowings *= np.exp(0.5*np.power(sigma/path_loss, 2))
+            # # sigma_Y = sigma/path_loss
+            # device_base_table = (d2bs_dist_matrix*shadowings).argmin(axis=0)
+            # if not len(device_base_table) == device_nb:
+            #     raise AssertionError()
             curr_trans_results = np.array([curr_trans_matrix[device_base_table[i], i] for i in range(device_nb)])
 
         elif METHOD == "BS_RX_DIVERS":
@@ -359,6 +374,8 @@ def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array,
     for stat_percent in stat_percents:
         accepted_device_index = np.array([1.0 if coordinate[0] <= width*stat_percent else 0.0 for coordinate in coordinates_devices_array])
         trans_index_array = sim_history[warm_t:sim_duration, :, 0]*np.tile(accepted_device_index, (sim_duration-warm_t, 1))
+        trans_index_df = pd.DataFrame(trans_index_array)
+        # trans_index_df.to_csv("xxx", mode='a', sep=';', index=False, header=False)
         # To convert the type of an array, use the .astype() method (preferred) or the type itself as a function.
         # For example: z.astype(float)
         trans_index_array = trans_index_array.reshape(device_nb*(sim_duration-warm_t))

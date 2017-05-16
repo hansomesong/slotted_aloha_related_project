@@ -5,9 +5,7 @@ import numpy as np
 from scipy.stats import bernoulli
 from time import time
 import multiprocessing as mp
-import csv
-import os
-import json
+import csv, sys, os, json
 from time import strftime
 import pandas as pd
 from scipy.stats import itemfreq
@@ -36,10 +34,10 @@ def worker(sim_settings, q):
     q.put(sim_result)
 
 # This function will be vectorized by Numpy in the corp of function run_simluation(**)
-# and run on a matrix where the value in each cell is the distance
-def path_loss_law(dist_square, path_loss_exponent):
+# and run on a matrix where the value in each cell is the distance between a BS and device
+def path_loss_law(dist, path_loss_exponent):
     # $r^{-\gamma}$, where r is distance, \gamma is path-loss component
-    return np.power(dist_square, -0.5*path_loss_exponent)
+    return np.power(dist, -1.0*path_loss_exponent)
 
 
 def calculate_sinr(rec_power_vector, threshold, curr_slot_trans_index):
@@ -101,60 +99,118 @@ def crs_prt(pkt_1, pkt_2):
     """
     return max(min(pkt_1[2], pkt_2[2]) - max(pkt_1[1], pkt_2[1]), 0)
 
-def deploy_nodes(width, alpha, intensity_bs):
+def get_involved_nodes_nb(width, alpha, intensity_bs, coord_type="Polar"):
+    """
+    :param width:                       the radius of simulation area
+    :param alpha:                       the active device intensity (Note: not transmitting device intensity)
+    :param intensity_bs:                the Base Station spatial intensity
+    :return:
+    """
+    if coord_type == "Polar":
+        AREA_SURFACE = np.pi*np.power(width, 2)
+        # device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
+        # bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
+        device_nb = int(alpha*AREA_SURFACE)                   # At least one device
+        bs_nb = int(intensity_bs*AREA_SURFACE)   # At least one BS
+    elif coord_type == "Cartesian":
+        AREA_SURFACE = np.power(width, 2)
+        device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
+        bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
+    else:
+        sys.exit("Error! Unknown coordinates type. Either Polar or Cartesian")
+    return device_nb, bs_nb
+
+def deploy_nodes(width, device_nb, bs_nb, coord_type="Polar"):
+    """
+    :param width:                       the radius of simulation area
+    :param device_nb:                   the active device number (Note: not transmitting device number)
+    :param bs_nb:                       the Base Station number
+    :param coord_type:                  the coordination type of simulation area. either Polar Coordinates  or Cartesian Coordinates
+    :return:
+            coordinates_devices_array: the list of tuple, each tuple represents for the coordination pair for a device
+            coordinates_bs_array:      the list of tuple, each tuple represents for the coordination pair for a BS
+    """
     # The involved device number will be one sample from a spatial PPP over a finite disk area
     # Generate the needed device nb and base station in this simulation
-    AREA_SURFACE = np.pi*np.power(width, 2)
-    device_nb = int(np.random.poisson(alpha*AREA_SURFACE, 1))                   # At least one device
-    bs_nb = max(int(np.random.poisson(intensity_bs*AREA_SURFACE, 1)), 1)        # At least one BS
-    # Uniformelly distribute devices and base stations using polar coordinates.
-    # We assume that always one device at the origin
-    device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
-    device_arguments = np.random.uniform(-np.pi, np.pi, device_nb)
-    coordinates_devices_array = zip(device_rho, device_arguments)
-    bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
-    bs_arguments = np.random.uniform(-np.pi, np.pi, bs_nb)
-    coordinates_bs_array = zip(bs_rho, bs_arguments)
-    return device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array
+    if coord_type == "Polar":
+        # Uniformly distribute devices and base stations using polar coordinates.
+        # We assume that always one device at the origin
+        device_rho = np.concatenate(([0.0], width*np.sqrt(np.random.uniform(0, 1, device_nb-1))))
+        device_arguments = np.random.uniform(-np.pi, np.pi, device_nb)
+        coordinates_devices_array = zip(device_rho, device_arguments)
+        bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
+        bs_arguments = np.random.uniform(-np.pi, np.pi, bs_nb)
+        coordinates_bs_array = zip(bs_rho, bs_arguments)
+    elif coord_type == "Cartesian":
+        device_x = np.random.uniform(0, width, device_nb)
+        device_y = np.random.uniform(0, width, device_nb)
+        coordinates_devices_array = zip(device_x, device_y)
+        bs_x = np.random.uniform(0, width, bs_nb)
+        bs_y = np.random.uniform(0, width, bs_nb)
+        coordinates_bs_array = zip(bs_x, bs_y)
+    else:
+        sys.exit("Error! Unknown coordinates type. Either Polar or Cartesian")
 
-def nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss):
-    # An intermediare data structure for the device-to-base_station distance.
-    d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
-    for index, line in enumerate(d2bs_dist_matrix):
-        # index => index of BS
-        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
-        # The value is the square of actual distance, whatever, just for selection of nearest BS
-        d2bs_dist_matrix[index] = np.array(
-            [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
-                 for coordinate in coordinates_devices_array])
+    return coordinates_devices_array, coordinates_bs_array
 
-    # Allocate the nearest base station, according to the min of distance of each row
+def nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss, coord_type="Polar"):
+    """
+
+    :param device_nb:                       the number of devices involved in simulation
+    :param bs_nb:                           the number of BS involved in simulation
+    :param coordinates_devices_array:       the list of tuple for device coordinates
+    :param coordinates_bs_array:            the list of tuple for Base Station coordinates
+    :param path_loss:                       the path-loss function, the most simple form is r^{-gamma}
+    :param coord_type:                      the coordinates type, either polar or Cartesian
+    :return: path_loss_matrix:              a matrix of dimension device_nb * bs_nb,
+                                            An intermediare data structure for the device-to-base_station distance.
+    """
+    d2bs_dist_matrix = \
+        calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array, coord_type)
+
+    # Allocate the geographically nearest base station, according to the min of distance of each column
+    # device_base_table save the index of BS to which the device attaches
     device_base_table = d2bs_dist_matrix.argmin(axis=0)
     # Numpy provides np.vectorize to turn Pythons which operate on numbers into functions that operate on numpy arrays
     vectorized_path_loss_f = np.vectorize(path_loss_law)
     # A maxtrix of size: DEVICE_NB * BS_NB
     path_loss_matrix = vectorized_path_loss_f(d2bs_dist_matrix, path_loss)
-    path_loss_matrix = np.transpose(path_loss_matrix)
-    return device_base_table, path_loss_matrix
+    #TODO: why we need to transpose matrix "path_loss_matrix"? I think not necessary. comment it!
+    # path_loss_matrix = np.transpose(path_loss_matrix)
+    return d2bs_dist_matrix, device_base_table, path_loss_matrix
 
-def calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array):
+def calculate_2bs_dist_matrix(bs_nb, device_nb, coordinates_bs_array, coordinates_devices_array, coord_type="Polar"):
     """
         This method is used to calculate device-to-BS distance matrix.
-        Each row is a distance vector for a device to each BS
-        Each column is a distance vector for a BS to each device
+        Each row is a distance vector for a BS to each device
+        Each column is a distance vector for a device to each BS
+    :param bs_nb:
+    :param device_nb:
+    :param coordinates_bs_array:
+    :param coordinates_devices_array:
+    :param coord_type:
+    :return: d2bs_dist_matrix:  matrix of distance, each cell is a distance between a device and BS pair.
     """
     # An intermediare data structure for the device-to-base_station distance.
     d2bs_dist_matrix = np.zeros((bs_nb, device_nb))
-    for index, line in enumerate(d2bs_dist_matrix):
-        curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
-        # The value is the square of actual distance
-        dist_sqr_list = [
-                            np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)
-                                -2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
-                            for coordinate in coordinates_devices_array
-                        ]
-        dist_list = [np.sqrt(element) for element in dist_sqr_list]
-        d2bs_dist_matrix[index] = np.array(dist_list)
+    if coord_type == "Polar":
+        for index, line in enumerate(d2bs_dist_matrix):
+            # index => index of BS
+            curr_bs_rho, curr_bs_arg = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+            # The value is the square of actual distance, whatever, just for selection of nearest BS
+            tmp_array = np.array(
+                [np.power(coordinate[0], 2)+np.power(curr_bs_rho, 2)-2*coordinate[0]*curr_bs_rho*np.cos(coordinate[1]-curr_bs_arg)
+                     for coordinate in coordinates_devices_array])
+            d2bs_dist_matrix[index] = np.sqrt(tmp_array)
+
+    elif coord_type == "Cartesian":
+        for index, line in enumerate(d2bs_dist_matrix):
+            # index => index of BS
+            curr_bs_x, curr_bs_y = coordinates_bs_array[index][0], coordinates_bs_array[index][1]
+            # The value is the square of actual distance, whatever, just for selection of nearest BS
+            tmp_array = np.array(
+                [np.power(coordinate[0] - curr_bs_x, 2)+np.power(coordinate[1]-curr_bs_y, 2) for coordinate in coordinates_devices_array])
+            d2bs_dist_matrix[index] = np.sqrt(tmp_array)
 
     return d2bs_dist_matrix
 
@@ -168,6 +224,8 @@ def run_simulation(sim_config_dict):
     # Create a minimum float number, which is extremely to zero, cause np.lognormal does not accept 0
     start_t = int(time())
     seed = hash(hash(os.urandom(os.getpid()))) % 4294967295 # np.seed [0, 4294967295]
+    #TODO: a fixed seed...for debug...
+    # seed = 434188281
     np.random.seed(seed)
 
     F_EPS = np.finfo(float).eps
@@ -179,6 +237,8 @@ def run_simulation(sim_config_dict):
     mu_fading,  mu_shadowing, sigma_dB = sim_config_dict['MU_FADING'], sim_config_dict['MU_SHADOWING'], sim_config_dict['SIGMA_SHADOWING']
     sigma_dB += F_EPS
     width, path_loss = sim_config_dict["WIDTH"], sim_config_dict['PATH_LOSS']
+    coord_type = sim_config_dict['COORD_TYPE']
+
     BETA = np.log(10)/10.0
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
@@ -192,13 +252,16 @@ def run_simulation(sim_config_dict):
     if METHOD == "BS_BEST_ATT":
         intensity_bs *= fm_shadowing
 
+    device_nb, bs_nb = get_involved_nodes_nb(width, alpha, intensity_bs, coord_type)
+    #TODO: such a setting is for debug purpose.
+    # device_nb, bs_nb = 5, 1
+    coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, device_nb, bs_nb, coord_type)
 
+    d2bs_dist_matrix, device_base_table, path_loss_matrix = \
+        nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss, coord_type)
 
-
-    device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, alpha, intensity_bs)
-    device_base_table, path_loss_matrix = nodes_location_process(
-        device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss
-    )
+    d2bs_dist_matrix = d2bs_dist_matrix.transpose()
+    path_loss_matrix = path_loss_matrix.transpose()
 
     # Now Add one zero in the beginning of LM list, to facilitate the generation of
     # Then each element in LM list represents the transmit power for the kth transmission (Not retransmission).
@@ -213,10 +276,13 @@ def run_simulation(sim_config_dict):
     # trans_power_history: a matrix of size: sim_duration * device_nb * bs_nb,  useful for energy-efficiency analysis
     trans_power_history = np.zeros((sim_duration, device_nb, bs_nb), dtype=np.float)
 
-    # Packet is represented by a 3-elements list: trans_index, start_t, end_t
+    # Since we assume that randomness effect in each packet transmission is constant. In Pure ALOHA case,
+    # One packet transmission is possible to span over two consecutive slots. Thus, we need to save the
+    # shadowing and fading values in last packet transmission
     last_channel_effect = np.zeros((device_nb, bs_nb), dtype=np.float)
 
     # Packet is represented by a 3-elements list: trans_index, start_t, end_t. Time-related info
+    # That's why the third dimension of packet_history is explicitely set as 3
     pkts_history = np.zeros((sim_duration, device_nb, 3), dtype=np.float)
 
     for slot_index in range(sim_duration-1):
@@ -226,14 +292,20 @@ def run_simulation(sim_config_dict):
             device_id for device_id in range(device_nb)
             if trans_power_history[slot_index, device_id, 0] == 0.0 and bernoulli.rvs(binomial_p) == 1
         ]
-        # print "new_pkt_d_ids", new_pkt_d_ids
+        #TODO: debug purpose
+        # print "slot_index", slot_index, "new_pkt_d_ids", new_pkt_d_ids
         for device_id in new_pkt_d_ids:
+            # current and next slot => both set 1 as transmit power level to each BS
             trans_power_history[slot_index, device_id, :] = np.array([1]*bs_nb)
             trans_power_history[slot_index+1, device_id, :] = np.array([1]*bs_nb)
-
+            # start time of each packet transmission is uniformly distributed in [slot_index,slot_index+1].
+            # By doing this, we can use slot system to simulate pure ALOHA
             start_t = np.random.uniform(slot_index, slot_index+1)
             pkts_history[slot_index][device_id] = [1, start_t, slot_index+1]
             pkts_history[slot_index+1][device_id] = [1, slot_index+1, start_t+1]
+
+            #TODO：debug
+            # print "\tGenerated pkt:", "device_id:", device_id, "content:", pkts_history[slot_index][device_id], pkts_history[slot_index+1][device_id]
 
         #update rec_power_history
         channel_variations = np.array([
@@ -267,6 +339,8 @@ def run_simulation(sim_config_dict):
                 end_itf_matrix = (rec_power_history[slot_index]*crs_prt_2_matrix).sum(axis=0)
 
                 ref_rec_power_vector = rec_power_history[slot_index, device_id]
+                #TODO: debug purpose
+                # print "\tdevice_id", device_id, "ref_rec_power_vector", ref_rec_power_vector
 
                 if not np.array_equal(ref_rec_power_vector, rec_power_history[slot_index-1, device_id]):
                     print "last slot", slot_index-1, rec_power_history[slot_index-1, device_id]
@@ -280,6 +354,7 @@ def run_simulation(sim_config_dict):
                 # To avoid 0 in the denominator, add an extremly small value (i.e. machine float epsilon)
                 cumu_itf_vector = np.maximum.reduce([start_itf_matrix, end_itf_matrix]) + F_EPS - ref_rec_power_vector
 
+
                 # 2017-05-02
                 # we use the upper bound I^{real} <= I^{max} = I^{start} + I^{end},
                 # where I^{real} is the actual cumulative inteference, I^{start} is cumulative at the start moment of a
@@ -288,6 +363,9 @@ def run_simulation(sim_config_dict):
                 # The failure state of a device at all BS.
                 # For BS_RX_DIVERS, if any of this list is false (i.e., successful transmission)
                 # For BS_NST_ATT, we just care about the state of attached BS.
+                # TODO: debug purppse
+                # print "\tIn slot:", slot_index, "device_id:", device_id, "suffered cumu itf:", cumu_itf_vector
+
                 ref_rec_sinr_vector = [sinr < np.power(10, threshold/10) for sinr in ref_rec_power_vector/cumu_itf_vector]
 
                 # Process with received SINR at the BS side.
@@ -348,8 +426,8 @@ def run_simulation(sim_config_dict):
 def sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history, trans_power_history):
     # Remove the statistics in the border area. Particularly important for BS reception diversity.
     # print "In statistics.s..."
-    # print sim_history[:,0]
-    # print trans_power_history[:, 0, 0]
+    # print sim_history
+    # print trans_power_history
     width = sim_config_dict["WIDTH"]
     sim_duration, warm_t = sim_config_dict['SIM_DURATION'], sim_config_dict['WARM_UP']
     max_trans = sim_config_dict['MAX_TRANS']

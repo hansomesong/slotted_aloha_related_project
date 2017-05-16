@@ -86,8 +86,8 @@ if __name__ == '__main__':
     sim_plr_upper_divers_0_pure = [element[2]-element[1] for element in sim_plr_list_0dB]
 
     bs_nst_att_sigma_0_pure = glob.glob(os.path.join(
-        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "mean_interference", "p_0.04_bs_0.004_R_40",
-        "BS_NST_ATT",  "sigma_0dB_50per", "*.csv")
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "mean_interference", "p_0.008_bs_0.08_R_40",
+        "BS_NST_ATT",  "sigma_0dB_100per", "*.csv")
     )
     sim_intensity_nst_0dB, sim_plr_list_nst_0dB = sgam.sim_data_process(bs_nst_att_sigma_0_pure)
     sim_plr_nst_0_pure = [element[1] for element in sim_plr_list_nst_0dB]
@@ -95,8 +95,8 @@ if __name__ == '__main__':
     sim_plr_upper_nst_0_pure = [element[2]-element[1] for element in sim_plr_list_nst_0dB]
 
     bs_nst_att_sigma_8_pure = glob.glob(os.path.join(
-        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "mean_interference", "p_0.04_bs_0.004_R_40",
-        "BS_NST_ATT",  "sigma_8dB_50per", "*.csv")
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "mean_interference", "p_0.008_bs_0.08_R_40",
+        "BS_NST_ATT",  "sigma_8dB_100per", "*.csv")
     )
     sim_intensity_nst_8dB, sim_plr_list_nst_8dB = sgam.sim_data_process(bs_nst_att_sigma_8_pure)
     sim_plr_nst_8_pure = [element[1] for element in sim_plr_list_nst_8dB]
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     )
 
     axes.errorbar(
-        p*sim_intensity_nst_8dB/lambda_b,
+        sim_intensity_nst_8dB/10.0,
         sim_plr_nst_8_pure,
         yerr=[sim_plr_lower_nst_8_pure, sim_plr_upper_nst_8_pure],
         fmt='d',
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         label="Best,SIM,8dB shadowing"
     )
     axes.errorbar(
-        p*sim_intensity_nst_0dB/lambda_b,
+        sim_intensity_nst_0dB/10,
         sim_plr_nst_0_pure,
         yerr=[sim_plr_lower_nst_0_pure, sim_plr_upper_nst_0_pure],
         fmt='o',

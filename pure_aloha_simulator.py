@@ -410,7 +410,7 @@ if __name__ == "__main__":
     # SIM_PART = 'fading_shadowing'
     # SIM_PART = 'perfect'
     SIM_PART = 'bs_rx_divers'
-    SIM_CONFIG_FILE = 'case_K=1_l=1_m=1_threshold=3dB.json'
+    SIM_CONFIG_FILE = 'case_AVGITF_K=1threshold=3dB.json'
     # Check the existence of "logs" folder and create it if necessary.
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)
