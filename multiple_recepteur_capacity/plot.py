@@ -58,8 +58,8 @@ if __name__ == '__main__':
     LINEWIDTH = 3
     #logs_dir_1 = glob.glob(os.path.join("..",  LOG_DIR, SUB_DIR, CASE_DIR, SUB_CASE_DIR, "*.csv"))
     bs_rx_div_sigma_0 = glob.glob(os.path.join(
-        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.04_bs_0.004_R_40",
-        "sigma_0dB", "*.csv")
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.008_bs_0.08_R_40",
+        "sigma_0dB_origin", "*.csv")
     )
 
     bs_rx_div_sigma_8 = glob.glob(os.path.join(
@@ -149,12 +149,15 @@ if __name__ == '__main__':
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)
 
     axes.set_yscale("log")
+
     print zip(p*lambda_m/lambda_b, p_f_bs_nst_att_8)
+
     axes.plot(
         p*lambda_m/lambda_b,
         p_f_rx_div_0,
         color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
     )
+
     axes.plot(
         p*lambda_m/lambda_b,
         p_f_bs_nst_att_8,
@@ -175,7 +178,7 @@ if __name__ == '__main__':
 
 
     axes.errorbar(
-        p*sim_intensity_0dB/lambda_b,
+        sim_intensity_0dB/10,
         sim_plr_0,
         yerr=[sim_plr_lower_0, sim_plr_upper_0],
         fmt='*',
@@ -184,6 +187,7 @@ if __name__ == '__main__':
         capthick=2,
         label="Diversity SIM,no shadowing"
     )
+
     axes.errorbar(
         p*sim_intensity_8dB/lambda_b,
         sim_plr_8,
@@ -194,6 +198,7 @@ if __name__ == '__main__':
         capthick=2,
         label="Diversity SIM,8dB shadowing"
     )
+
     axes.errorbar(
         sim_intensity_nst_0dB/10.0,
         sim_plr_nst_0,
@@ -204,6 +209,7 @@ if __name__ == '__main__':
         capthick=2,
         label="Nearest SIM,no shadowing"
     )
+
     axes.errorbar(
         sim_intensity_nst_8dB/10.0,
         sim_plr_nst_8,
