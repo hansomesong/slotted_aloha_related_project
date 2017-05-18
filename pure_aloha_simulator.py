@@ -165,6 +165,13 @@ def run_simulation(sim_config_dict):
     # The vector format of back off values allows to implement different backoff for each retransmission
     BACK_OFFS = [backoff for i in range(max_trans)]
 
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/path_loss
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    # The only difference between BS_NST_ATT and BS_BEST_ATT is whether to change the intensity of BS
+    if METHOD == "BS_BEST_ATT":
+        intensity_bs *= fm_shadowing
+
     device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, alpha, intensity_bs)
     device_base_table, path_loss_matrix = nodes_location_process(
         device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss
@@ -246,7 +253,7 @@ def run_simulation(sim_config_dict):
                 ref_rec_sinr_vector = [sinr < np.power(10, threshold/10) for sinr in ref_rec_power_vector/cumu_itf_vector]
 
                 # Process with received SINR at the BS side.
-                if METHOD == "BS_NST_ATT":
+                if METHOD in ["BS_NST_ATT", "BS_BEST_ATT"]:
                     if ref_rec_sinr_vector[device_base_table[device_id]]:
                         # True => sinr < thresold => failure => retransmission procedure
                         #Todo: to be implemented. This method. For one-shot acess, we can leave it empty...
