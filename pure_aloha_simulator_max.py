@@ -406,6 +406,15 @@ def run_simulation(sim_config_dict):
                         retransmission()
                         sim_history[slot_index][device_id] = 2.0
 
+                elif METHOD == "BS_RX_DIVERS_MRC":
+                    final_sinr = np.sum([ref_rec_power_vector/cumu_itf_vector])
+                    if final_sinr >= np.power(10, threshold/10):
+                    # If the sum of SINR received at each BS is not less than SINR threshold, transmission success!
+                        sim_history[slot_index][device_id] = 1.0
+                    else:
+                        retransmission()
+                        sim_history[slot_index][device_id] = 2.0
+
                 else:
                     print "No simulated method is specified (BS_NST_ATT or BS_RX_DIVERS), program exit. Please check you simulation configuration JSON file."
                     exit()
