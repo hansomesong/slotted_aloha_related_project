@@ -122,6 +122,7 @@ if __name__ == '__main__':
     #     "..", "..", LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "max_interference", "p_0.04_bs_0.004_R_40",
     #     "BS_RX_DIVERS", "sigma_0dB", "*.csv")
     # )
+
     bs_rx_div_sigma_0_max_pure = glob.glob(os.path.join(
         "..", "..", LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "max_interference", "p_0.008_bs_0.08_R_40",
         "BS_RX_DIVERS", "sigma_0dB_upper", "*.csv")
@@ -131,20 +132,20 @@ if __name__ == '__main__':
     sim_plr_lower_divers_max_0_pure = [element[1]-element[0] for element in sim_plr_list_max_0dB]
     sim_plr_upper_divers_max_0_pure = [element[2]-element[1] for element in sim_plr_list_max_0dB]
 
-    bs_rx_div_sigma_0_pure = glob.glob(os.path.join(
-        "..", "..", LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.04_bs_0.004_R_40",
-        "pure_aloha", "sigma_0dB", "*.csv")
+    bs_rx_div_sigma_8_pure = glob.glob(os.path.join(
+        "..", "..", LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "max_interference", "p_0.008_bs_0.08_R_40",
+        "BS_RX_DIVERS", "sigma_8dB_lower", "*.csv")
     )
-    sim_intensity_0dB, sim_plr_list_0dB = sgam.sim_data_process(bs_rx_div_sigma_0_pure)
-    sim_plr_divers_0_pure = [element[1] for element in sim_plr_list_0dB]
-    sim_plr_lower_divers_0_pure = [element[1]-element[0] for element in sim_plr_list_0dB]
-    sim_plr_upper_divers_0_pure = [element[2]-element[1] for element in sim_plr_list_0dB]
+    sim_intensity_max_8dB, sim_plr_list_max_8dB = sgam.sim_data_process(bs_rx_div_sigma_8_pure)
+    sim_plr_divers_max_8_pure = [element[1] for element in sim_plr_list_max_8dB]
+    sim_plr_lower_divers_max_8_pure = [element[1]-element[0] for element in sim_plr_list_max_8dB]
+    sim_plr_upper_divers_max_8_pure = [element[2]-element[1] for element in sim_plr_list_max_8dB]
 
 
 
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)
 
-    axes.set_yscale("log")
+    # axes.set_yscale("log")
 
     axes.plot(
         p*lambda_m/lambda_b,
@@ -152,28 +153,39 @@ if __name__ == '__main__':
         color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
     )
 
-    axes.plot(
-        p*lambda_m/lambda_b,
-        sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
-        color='k',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
-    )
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
+    #     color='k',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
+    # )
 
     axes.errorbar(
-        sim_intensity_max_0dB/10.0,
+        sim_intensity_max_0dB/10,
         sim_plr_divers_max_0_pure,
         yerr=[sim_plr_lower_divers_max_0_pure, sim_plr_upper_divers_max_0_pure],
         fmt='*',
-        mfc='r',
+        mfc='none',
         ecolor='r',
         capthick=2,
         label="Diversity,SIM,no shadowing")
+
+
+    axes.errorbar(
+        sim_intensity_max_8dB/10,
+        sim_plr_divers_max_8_pure,
+        yerr=[sim_plr_lower_divers_max_8_pure, sim_plr_upper_divers_max_8_pure],
+        fmt='s',
+        mfc='none',
+        ecolor='r',
+        capthick=2,
+        label="Diversity,SIM,8dB shadowing")
 
     axes.errorbar(
         sim_intensity_nst_8dB/10,
         sim_plr_nst_8_pure,
         yerr=[sim_plr_lower_nst_8_pure, sim_plr_upper_nst_8_pure],
         fmt='d',
-        mfc='g',
+        mfc='none',
         ecolor='g',
         capthick=2,
         label="Nearest,SIM,8dB shadowing"
@@ -211,7 +223,7 @@ if __name__ == '__main__':
     axes.plot(
         p*lambda_m/lambda_b,
         sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0, True, False),
-        color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Nearest,ANA,no shadowing"
+        color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
     )
 
     axes.errorbar(
@@ -219,16 +231,16 @@ if __name__ == '__main__':
         sim_plr_nst_0_pure,
         yerr=[sim_plr_lower_nst_0_pure, sim_plr_upper_nst_0_pure],
         fmt='o',
-        mfc='b',
+        mfc='none',
         ecolor='b',
         capthick=2,
-        label="Nearest,SIM,no shadowing")
+        label="Best,SIM,8dB shadowing")
 
     axes.grid()
     axes.axis([X_START, X_END, Y_START, Y_END])
     axes.set_xlabel(r"Normalized Load")
     axes.set_ylabel("Packet Loss Rate")
-
+    print sgam.bs_rx_div_op(1.0, 0.08, gamma, 0.008, thetha_dB, 8, True, False),
     plt.legend(loc='best')
     # plt.legend(bbox_to_anchor=(0.119, 0.02, 0.79, 1), loc=1, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
     plt.savefig('validation_plr.eps', format='eps', dpi=300)

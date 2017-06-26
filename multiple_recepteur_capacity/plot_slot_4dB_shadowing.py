@@ -57,55 +57,42 @@ if __name__ == '__main__':
     MAX_TRANS = 1
     LINEWIDTH = 3
     #logs_dir_1 = glob.glob(os.path.join("..",  LOG_DIR, SUB_DIR, CASE_DIR, SUB_CASE_DIR, "*.csv"))
-    # bs_rx_div_sigma_0 = glob.glob(os.path.join(
-    #     "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.04_bs_0.004_R_40",
-    #     "sigma_0dB", "*.csv")
-    # )
     bs_rx_div_sigma_0 = glob.glob(os.path.join(
-        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.008_bs_0.08_R_40",
-        "sigma_0dB_100per", "*.csv")
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.04_bs_0.004_R_40",
+        "sigma_0dB", "*.csv")
     )
-
-    # bs_rx_div_sigma_8 = glob.glob(os.path.join(
-    #     "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.04_bs_0.004_R_40",
-    #     "sigma_8dB", "*.csv")
-    # )
 
     bs_rx_div_sigma_8 = glob.glob(os.path.join(
-        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.008_bs_0.08_R_40",
-        "sigma_8dB_100per", "*.csv")
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_RX_DIVERS", "p_0.04_bs_0.004_R_40",
+        "sigma_8dB", "*.csv")
     )
 
-    # bs_nst_att_sigma_8 = glob.glob(os.path.join(
-    #     "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_NST_ATT", "p_0.01_bs_0.05_R_25",
-    #     "sigma_8dB_50per", "*.csv")
-    # )
+    bs_nst_att_sigma_4 = glob.glob(os.path.join(
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_NST_ATT", "p_0.008_bs_0.004_R_40",
+        "sigma_4dB_100per", "*.csv")
+    )
+
+    print bs_nst_att_sigma_4
 
     # bs_nst_att_sigma_8 = glob.glob(os.path.join(
     #     "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_NST_ATT", "p_0.008_bs_0.004_R_40",
     #     "sigma_8dB_100per", "*.csv")
     # )
 
-    bs_nst_att_sigma_8 = glob.glob(os.path.join(
-        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_NST_ATT", "p_0.008_bs_0.08_R_40",
-        "sigma_8dB_100per", "*.csv")
-    )
-
     bs_best_att_sigma_8 = glob.glob(os.path.join(
-        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_BEST_ATT", "p_0.008_bs_0.08_R_40",
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_BEST_ATT", "p_0.008_bs_0.004_R_40_no_change_bs_intensity",
         "sigma_8dB_100per", "*.csv")
     )
 
     bs_nst_att_sigma_0 = glob.glob(os.path.join(
-        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_NST_ATT", "p_0.008_bs_0.08_R_40",
-        "sigma_0dB_100per", "*.csv")
+        "..",  LOG_DIR, SUB_DIR, "fading_shadowing", "BS_NST_ATT", "p_0.002_bs_0.01_R_25",
+        "sigma_0dB_50per", "*.csv")
     )
 
 
     sim_intensity_0dB, sim_plr_list_0dB = sgam.sim_data_process(bs_rx_div_sigma_0)
     sim_intensity_8dB, sim_plr_list_8dB = sgam.sim_data_process(bs_rx_div_sigma_8)
-    sim_intensity_nst_8dB, sim_plr_list_nst_8dB = sgam.sim_data_process(bs_nst_att_sigma_8)
-    print sim_intensity_nst_8dB, sim_plr_list_nst_8dB
+    sim_intensity_nst_4dB, sim_plr_list_nst_4dB = sgam.sim_data_process(bs_nst_att_sigma_4)
     sim_intensity_best_8dB, sim_plr_list_best_8dB = sgam.sim_data_process(bs_best_att_sigma_8)
 
     sim_intensity_nst_0dB, sim_plr_list_nst_0dB = sgam.sim_data_process(bs_nst_att_sigma_0)
@@ -123,9 +110,9 @@ if __name__ == '__main__':
     sim_plr_upper_8 = [element[2]-element[1] for element in sim_plr_list_8dB]
 
 
-    sim_plr_nst_8 = [element[1] for element in sim_plr_list_nst_8dB]
-    sim_plr_lower_nst_8 = [element[1]-element[0] for element in sim_plr_list_nst_8dB]
-    sim_plr_upper_nst_8 = [element[2]-element[1] for element in sim_plr_list_nst_8dB]
+    sim_plr_nst_4 = [element[1] for element in sim_plr_list_nst_4dB]
+    sim_plr_lower_nst_4 = [element[1]-element[0] for element in sim_plr_list_nst_4dB]
+    sim_plr_upper_nst_4 = [element[2]-element[1] for element in sim_plr_list_nst_4dB]
     #
     sim_plr_nst_0 = [element[1] for element in sim_plr_list_nst_0dB]
     sim_plr_lower_nst_0 = [element[1]-element[0] for element in sim_plr_list_nst_0dB]
@@ -149,46 +136,24 @@ if __name__ == '__main__':
 
     # Define p_f_2 as the outage probability over infinite plane
     p_f_rx_div_0 = sgam.bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0)
-    p_f_rx_div_8 = sgam.bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8)
-
-    p_f_rx_div_00 = sgam.bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0)
-
-
     p_f_bs_nst_att_0 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0)
-    p_f_bs_nst_att_8 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8)
-    p_f_bs_bst_att_8 = sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8)
+    p_f_bs_nst_att_4 = sgam.bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 4)
+    p_f_bs_bst_att_8 = sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 4)
 
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)
 
     axes.set_yscale("log")
-
-    print zip(p*lambda_m/lambda_b, p_f_bs_nst_att_8)
-
-    # axes.plot(
-    #     p*lambda_m/lambda_b,
-    #     p_f_rx_div_00,
-    #     color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
-    # )
-
+    print zip(p*lambda_m/lambda_b, p_f_bs_nst_att_4)
     axes.plot(
         p*lambda_m/lambda_b,
-        p_f_rx_div_8,
-        color='r',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Diversity,ANA"
+        p_f_rx_div_0,
+        color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
     )
-
     axes.plot(
         p*lambda_m/lambda_b,
-        p_f_bs_nst_att_8,
-        color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
+        p_f_bs_nst_att_4,
+        color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,4dB shadowing"
     )
-
-    # Case: take into account background noise
-    # axes.plot(
-    #     p*lambda_m/lambda_b,
-    #     sgam.bs_best_atch_op_with_noise(lambda_m, lambda_b, gamma, p, thetha_dB, 8, -200, False, True),
-    #     color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
-    # )
-
 
     # axes.plot(
     #     p*lambda_m/lambda_b,
@@ -199,56 +164,53 @@ if __name__ == '__main__':
     axes.plot(
         p*lambda_m/lambda_b,
         p_f_bs_nst_att_0,
-        color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
+        color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Nearest,ANA,no shadowing"
     )
 
 
     axes.errorbar(
-        sim_intensity_0dB/10,
+        p*sim_intensity_0dB/lambda_b,
         sim_plr_0,
         yerr=[sim_plr_lower_0, sim_plr_upper_0],
         fmt='*',
-        mfc='none',
+        mfc='r',
         ecolor='r',
         capthick=2,
         label="Diversity SIM,no shadowing"
     )
-
     axes.errorbar(
-        sim_intensity_8dB/10,
+        p*sim_intensity_8dB/lambda_b,
         sim_plr_8,
         yerr=[sim_plr_lower_8, sim_plr_upper_8],
         fmt='s',
-        mfc='none',
-        ecolor='r',
+        mfc='r',
+        ecolor='k',
         capthick=2,
         label="Diversity SIM,8dB shadowing"
     )
-
     axes.errorbar(
-        sim_intensity_nst_0dB/10.0,
+        sim_intensity_nst_0dB/5.0,
         sim_plr_nst_0,
         yerr=[sim_plr_lower_nst_0, sim_plr_upper_nst_0],
         fmt='o',
         ecolor='b',
-        mfc='none',
+        mfc='b',
         capthick=2,
-        label="Best SIM, 8dB shadowing"
+        label="Nearest SIM,no shadowing"
     )
-
     axes.errorbar(
-        sim_intensity_nst_8dB/10.0,
-        sim_plr_nst_8,
-        yerr=[sim_plr_lower_nst_8, sim_plr_upper_nst_8],
+        sim_intensity_nst_4dB*2.0,
+        sim_plr_nst_4,
+        yerr=[sim_plr_lower_nst_4, sim_plr_upper_nst_4],
         fmt='d',
-        mfc='none',
+        mfc='g',
         ecolor='g',
         capthick=2,
-        label="Nearest SIM,8dB shadowing"
+        label="Nearest SIM,4dB shadowing"
     )
 
     # axes.errorbar(
-    #     sim_intensity_best_8dB/10.0,
+    #     sim_intensity_best_8dB*2.0,
     #     sim_plr_best_8,
     #     yerr=[sim_plr_lower_best_8, sim_plr_upper_best_8],
     #     fmt='d',

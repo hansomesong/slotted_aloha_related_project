@@ -171,6 +171,8 @@ def deploy_nodes(width, device_nb, bs_nb, coord_type="Polar"):
         bs_rho = width*np.sqrt(np.random.uniform(0, 1, bs_nb))
         bs_arguments = np.random.uniform(-np.pi, np.pi, bs_nb)
         coordinates_bs_array = zip(bs_rho, bs_arguments)
+        # sort coordinates_bs_array by r
+        coordinates_bs_array.sort(key=lambda x: x[0])
     elif coord_type == "Cartesian":
         device_x = np.random.uniform(0, width, device_nb)
         device_y = np.random.uniform(0, width, device_nb)
@@ -265,6 +267,9 @@ def run_simulation(sim_config_dict):
     seed = hash(hash(os.urandom(os.getpid()))) % 4294967295 # np.seed [0, 4294967295]
     np.random.seed(seed)
 
+
+    test = []
+
     # Create an extremely small float number and add it to shadowing standard error => np.lognormal does not accept 0
     F_EPS = np.finfo(float).eps
     METHOD = sim_config_dict['METHOD']
@@ -283,6 +288,8 @@ def run_simulation(sim_config_dict):
     device_nb, bs_nb = get_involved_nodes_nb(width, alpha, intensity_bs, coord_type)
     coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, device_nb, bs_nb, coord_type)
 
+    test.append(np.array([element[0] for element in coordinates_bs_array]))
+
     d2bs_dist_matrix, device_base_table, path_loss_matrix = \
         nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss, coord_type)
     #TODO: we can consider to introduce a factor as power control component...
@@ -290,12 +297,6 @@ def run_simulation(sim_config_dict):
     sim_history = np.ones(sim_duration, dtype=int)
 
     for slot in range(sim_duration):
-        # first determine the location of device and BS
-        coordinates_devices_array, coordinates_bs_array = deploy_nodes(width, device_nb, bs_nb, coord_type)
-
-        d2bs_dist_matrix, device_base_table, path_loss_matrix = \
-        nodes_location_process(device_nb, bs_nb, coordinates_devices_array, coordinates_bs_array, path_loss, coord_type)
-
         # Generate and calculate the cumulative interference from all devices
         trans_power_levels = np.random.binomial(1, binomial_p, device_nb)
         trans_power_matrix = np.tile(trans_power_levels, (bs_nb, 1))                          # matrix bs_ns * device_nb
@@ -309,11 +310,12 @@ def run_simulation(sim_config_dict):
         #TODO: it just need one vector instead of matrix here.
         # path_loss_matrix[:, 0] is for the device at the origin to each BS
         rec_power_levels0 = shadowings0 * fadings0 * path_loss_matrix[:, 0]
-
+        print rec_power_levels0
 
         f2 = np.vectorize(f, otypes=[np.bool])
         curr_trans_levels = f2(rec_power_levels0, cumu_itf_levels, threshold)
 
+        test.append(rec_power_levels0)
 
         if METHOD in ["BS_NST_ATT", "BS_BEST_ATT"]:
         # The nearest-base-station approach
@@ -338,6 +340,9 @@ def run_simulation(sim_config_dict):
 
     statistics_vector = sim_result_statistics(sim_config_dict, device_nb, coordinates_devices_array, sim_history)
     end_t = int(time())
+
+    test_df = pd.DataFrame(test)
+    test_df.to_csv("xx", mode='a', index=False, header=False)
     time_elapsed = float(end_t-start_t)/60.0
     print "Time:", int(time_elapsed), "Alpha:", alpha, "Seed:", seed, "Result:"
     print statistics_vector.to_string(index=False, header=False)

@@ -57,6 +57,18 @@ if __name__ == "__main__":
 
     axes.plot(
         P_F_MAX,
+        m_macro_div_gain2best,
+        color='g',
+        marker='o',
+        markersize=MARKER_SIZE,
+        markevery=MARKEVERY,
+        linestyle='--',
+        linewidth=LINEWIDTH,
+        label=r"Macro Diversity Gain, $N_{rep} = 3, N_{max\_trans} = 3$"
+    )
+
+    axes.plot(
+        P_F_MAX,
         sgam.macro_div_gain(p_f_max=P_F_MAX, target="BEST", sigma_dB=SIGMA_DB, gamma=GAMMA, trans_rep_nb=4, max_trans_nb=4),
         color='r',
         marker='*',
@@ -79,17 +91,6 @@ if __name__ == "__main__":
         label=r"Macro Diversity Gain, $N_{rep} = 5, N_{max\_trans} = 5$"
     )
 
-    axes.plot(
-        P_F_MAX,
-        m_macro_div_gain2best,
-        color='g',
-        marker='o',
-        markersize=MARKER_SIZE,
-        markevery=MARKEVERY,
-        linestyle='--',
-        linewidth=LINEWIDTH,
-        label=r"Macro Diversity Gain, $N_{rep} = 3, N_{max\_trans} = 3$"
-    )
     axes.set_xlabel(r"Packet Loss Rate")
     axes.set_ylabel(r"Macro Diversity Gain against Best BS Attach" )
     axes.grid()
