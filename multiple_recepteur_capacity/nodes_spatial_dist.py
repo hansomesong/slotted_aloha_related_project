@@ -26,7 +26,7 @@ SUB_DIR = 'multiple_reception'
 CASE_DIR = 'case_3dB'
 SUB_CASE_DIR = "bs_0.01_p_0.002"
 DATA_FOLDED = '.'
-FIGSIZE = (15, 6)
+FIGSIZE = (8, 8)
 
 A_P_DECREMENT ="analytical, power decrement"
 A_P_IDENTIC = "analytical, identical power"
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     width  = 40
     intensity = 0.4
-    density_bs = 0.04
+    density_bs = 0.01
     bs_nb = int(np.random.poisson(density_bs*np.power(width, 2)))
     device_nb = int(np.random.poisson(intensity*np.power(width, 2)))
     print "BS_STATION NUMBER:", bs_nb, "DEVICE_NUMBER:", device_nb

@@ -59,6 +59,22 @@ def calculate_sinr(rec_power_vector, threshold, curr_slot_trans_index):
         if k != 0 else False for d_id, k in enumerate(curr_slot_trans_index)]
     return trans_state_result
 
+def calculate_sinr_value(rec_power_vector, curr_slot_trans_index):
+    """
+
+    :param rec_power_vector:                a list of received power at each BS;
+    :param curr_slot_trans_index:           a list of transmission index, 0=> no transmission, 1=>first trial
+    :return:
+            trans_state_result:             a list of bool type. True=> transmission False=> Success or no transmission
+    """
+    # curr_slot_trans_index = sim_history[slot, :, 0]
+    # 我们采用 SINR门限值*干扰值 和 接收功率 比较的方式，加速仿真的执行
+    total_p = np.sum(rec_power_vector)
+    sinrs = [
+        rec_power_vector[d_id] / (total_p - rec_power_vector[d_id])
+        if k != 0 else 1000.0 for d_id, k in enumerate(curr_slot_trans_index)]
+    return sinrs
+
 def process_simultenaous_trans(slot, curr_trans_results, sim_history, max_trans, sim_duration, BACK_OFFS):
     """
     :param slot: the current slot index, for example, 1,2,3,4,5, ...
@@ -346,6 +362,12 @@ def run_simulation(sim_config_dict):
         elif METHOD == "BS_RX_DIVERS":
         # The fire-and-forget approach
             curr_trans_results = np.apply_along_axis(is_retransmited, 0, curr_trans_matrix)
+        elif METHOD == "BS_RX_DIVERS_MRC":
+        # The fire-and-forget approach
+        # sum by column
+            total_sinrs = np.sum(np.apply_along_axis(calculate_sinr_value, 1, rec_power_levels, sim_history[slot, :, 0]), axis=0)
+            curr_trans_results = np.array([sinr < 10 ** (0.1 * threshold) for sinr in total_sinrs])
+
         else:
             print "No simulated method is specified (BS_NST_ATT or BS_RX_DIVERS), program exit. " \
                   "Please check you simulation configuration JSON file."

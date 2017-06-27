@@ -10,6 +10,8 @@ import numpy as np
 import scipy.stats as st
 import pandas as pd
 import glob
+from scipy.special import erf as erf
+
 from scipy.special import gamma as gamma_f
 import scipy.special as ss
 from analytical_model import sgam
@@ -145,7 +147,7 @@ if __name__ == '__main__':
 
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)
 
-    # axes.set_yscale("log")
+    axes.set_yscale("log")
 
     axes.plot(
         p*lambda_m/lambda_b,
@@ -158,6 +160,16 @@ if __name__ == '__main__':
     #     sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True, False),
     #     color='k',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
     # )
+
+    # Case: maximum ratio combining
+    p_f_rx_div_mrc_0 = 1-erf(0.5*np.power(p*lambda_m/lambda_b*np.sqrt(np.pi*theta), -1))
+    # p_f_rx_div_mrc_0 = sgam.num_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, pure=False, itf_mean=True)
+    axes.plot(
+        p*lambda_m/lambda_b,
+        p_f_rx_div_mrc_0,
+        color='r',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Diversity MRC,ANA"
+    )
+
 
     axes.errorbar(
         sim_intensity_max_0dB/10,

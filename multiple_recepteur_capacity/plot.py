@@ -183,11 +183,13 @@ if __name__ == '__main__':
     )
 
     # Case: take into account background noise
-    # axes.plot(
-    #     p*lambda_m/lambda_b,
-    #     sgam.bs_best_atch_op_with_noise(lambda_m, lambda_b, gamma, p, thetha_dB, 8, -200, False, True),
-    #     color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
-    # )
+    axes.plot(
+        p*lambda_m/lambda_b,
+        sgam.bs_best_atch_op_with_noise(lambda_m, lambda_b, gamma, p, thetha_dB, 8, -200, False, True),
+        color='k',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing, with noise"
+    )
+
+    print sgam.bs_best_atch_op_with_noise(lambda_m, lambda_b, gamma, p, thetha_dB, 8, -200, False, True)
 
 
     # axes.plot(
