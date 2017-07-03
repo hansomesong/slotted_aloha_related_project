@@ -8,6 +8,8 @@ import pandas as pd
 from scipy.special import gamma as gamma_f
 from scipy.special import erf as erf
 import scipy.stats as st
+import scipy.integrate as integrate
+
 
 
 # Some common constant declaration
@@ -159,6 +161,52 @@ def bs_best_atch_op_with_noise(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB
     V = fm_shadowing*np.pi*(p*lambda_m*A*np.power(THETA, 2.0/gamma) + lambda_b)
 
     return 1.0 - np.pi * lambda_b * fm_shadowing * 0.5 * np.sqrt(np.pi/U) * np.exp(V**2/4/U) * (1- erf(V/2/np.sqrt(U)))
+
+def bs_best_atch_op_with_noise_trap_rule(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, noise_power, pure=False, itf_mean=True):
+    """
+    This method is used to calculate the packet loss rate for the case where each device should attach to the best
+    BS(i.e., Base Station) before transmission. Background noise is taken into account.
+    The path-loss function is in form of power-law and has a singularity at the origin.
+    The channel randomness effect we take into account Rayleigh fading and large-scale shadowing.
+    :param lambda_m:    numpy array, spatial device density array
+    :param lambda_b:    scalar, spatial BS density
+    :param gamma:       scalar, path-loss exponent, if gamma=0, no shadowing effect
+    :param p:           scalar, the probability to transmit one message
+    :param thetha_dB:   scalar, capture effect SINR threshold, unit dB!
+    :param sigma_dB:    scalar, standard error of shadowing effect, unit dB
+    :param noise_power: scalar, the normalized background noise power level,unit dBm.
+    :param pure:        boolean, False refers to slotted Aloha otherwise pure Aloha (i.e., non-slotted Aloha)
+    :return: numpy array, the outage probability as function of lambda_m
+    """
+    THETA = np.power(10, thetha_dB/10)
+    BETA = np.log(10.0)/10.0
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/gamma
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    noise_power = np.power(10, (noise_power - 30.0)/10)
+
+    if not pure:
+        A = gamma_f(1-2.0/gamma)*gamma_f(1+2.0/gamma)
+    else:
+        if itf_mean:
+            factor = 2*gamma/(2+gamma)
+        else:
+            factor = 2.0
+        A = gamma_f(1-2.0/gamma)*gamma_f(1+2.0/gamma)*factor
+
+    U = THETA * noise_power
+    print "V", fm_shadowing*np.pi*(p*0*A*np.power(THETA, 2.0/gamma) + lambda_b)
+    result = []
+    for m in lambda_m:
+
+        V = fm_shadowing*np.pi*(p*m*A*np.power(THETA, 2.0/gamma) + lambda_b)
+
+        integral = 1 - np.pi*lambda_b*fm_shadowing*integrate.quad(lambda r: np.exp(-U*r**2-V*r), 0, 10000)[0]
+
+        result.append(integral)
+
+    return np.array(result)
+
 
 def new_bs_rx_div_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=False, itf_mean=True):
     """
