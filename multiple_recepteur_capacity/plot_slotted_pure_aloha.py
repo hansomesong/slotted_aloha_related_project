@@ -13,6 +13,7 @@ import glob
 from scipy.special import gamma as gamma_f
 import scipy.special as ss
 from analytical_model import sgam
+from scipy.special import erf as erf
 # from analytical_model.sgam import bs_nearest_atch_op, bs_rx_div_op
 
 import matplotlib
@@ -131,6 +132,17 @@ if __name__ == '__main__':
         pure_p_f_rx_div_8,
         color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
     )
+
+
+    # Case: maximum ratio combining
+    p_f_rx_div_mrc_0 = 1-erf(0.75*np.power(p*lambda_m/lambda_b*np.sqrt(np.pi*theta), -1))
+    print "p_f_rx_div_mrc_0", p_f_rx_div_mrc_0
+    # p_f_rx_div_mrc_0 = sgam.num_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, pure=False, itf_mean=True)
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     p_f_rx_div_mrc_0,
+    #     color='m',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity MRC,ANA"
+    # )
     axes.errorbar(
         sim_intensity_0dB/10.0,
         sim_plr_divers_0_pure,

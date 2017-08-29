@@ -513,6 +513,7 @@ if __name__ == "__main__":
     SIM_CONFIG_DIR = 'sim_configs'
     # SIM_PART = 'fading_shadowing'
     # SIM_PART = 'perfect'
+    # SIM_PART = 'shadowing'
     SIM_PART = 'bs_rx_divers'
     SIM_CONFIG_FILE = 'case_K=1_l=1_m=1_threshold=3dB.json'
     # Check the existence of "logs" folder and create it if necessary.

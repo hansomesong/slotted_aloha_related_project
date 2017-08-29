@@ -172,11 +172,11 @@ if __name__ == '__main__':
     # Case: maximum ratio combining
     p_f_rx_div_mrc_0 = 1-erf(0.5*np.power(p*lambda_m/lambda_b*np.sqrt(np.pi*theta), -1))
     # p_f_rx_div_mrc_0 = sgam.num_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, pure=False, itf_mean=True)
-    axes.plot(
-        p*lambda_m/lambda_b,
-        p_f_rx_div_mrc_0,
-        color='r',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Diversity MRC,ANA"
-    )
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     p_f_rx_div_mrc_0,
+    #     color='m',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity MRC,ANA"
+    # )
 
 
     axes.errorbar(
@@ -211,16 +211,16 @@ if __name__ == '__main__':
         label="Nearest,SIM,8dB shadowing"
     )
 
-    axes.errorbar(
-        sim_intensity_mrc_max_8dB/10,
-        sim_plr_divers_mrc_max_8_pure,
-        yerr=[sim_plr_lower_divers__mrc_max_8_pure, sim_plr_upper_divers_mrc_max_8_pure],
-        fmt='v',
-        mfc='none',
-        ecolor='k',
-        capthick=2,
-        label="MRC,SIM,8dB shadowing"
-    )
+    # axes.errorbar(
+    #     sim_intensity_mrc_max_8dB/10,
+    #     sim_plr_divers_mrc_max_8_pure,
+    #     yerr=[sim_plr_lower_divers__mrc_max_8_pure, sim_plr_upper_divers_mrc_max_8_pure],
+    #     fmt='v',
+    #     mfc='none',
+    #     ecolor='k',
+    #     capthick=2,
+    #     label="MRC,SIM,8dB shadowing"
+    # )
 
     # axes.errorbar(
     #     2*sim_intensity_best_8dB,

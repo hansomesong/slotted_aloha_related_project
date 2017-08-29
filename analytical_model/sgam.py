@@ -542,6 +542,31 @@ def frac_moment_calculator(lambda_m, p, gamma):
     return 2*np.power(np.pi, -2)*np.power(p*lambda_m, -1)
 
 
+def min_tx_power_best_case(p_outage, p_f_target, lambda_b, gamma, thetha_dB, sigma_dB):
+    """
+        This method is used to calculate the minimum transmit power in noise-limited system with outage
+        probability target. Interference from other nodes is neglected.
+        Thus it has nothing to do with "p", lambda_m.
+        The background noise is normalized to 1.
+        p_f_target: the target packet loss rate, for example 10%.
+        p_outage: the portion of devices whose actual packet loss rate bypass p_f_target.
+    """
+    THETA = np.power(10, thetha_dB/10.0)
+    BETA = np.log(10.0)/10.0
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/gamma
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    term1 = np.pi * lambda_b * fm_shadowing
+    print "term1", term1
+
+    term2 = THETA * np.power(np.log(1.0/p_outage)/term1, gamma/2) * np.power(np.log(1.0/(1-p_f_target)), -1)
+
+    return term2
+
+
+
+
+
 
 
 

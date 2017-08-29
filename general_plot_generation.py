@@ -184,5 +184,5 @@ for ax, col in zip(axes[0], cols):
     ax.set_title(col)
 
 plt.legend(bbox_to_anchor=(0.12, 0.01, 0.79, 1), loc=8, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
-plt.savefig(os.path.join("figures", FIG_NAME), format='eps', dpi=300, bbox_inches='tight', transparent=True)
+# plt.savefig(os.path.join("figures", FIG_NAME), format='eps', dpi=300, bbox_inches='tight', transparent=True)
 plt.show()

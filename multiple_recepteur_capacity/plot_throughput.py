@@ -91,20 +91,20 @@ if __name__ == '__main__':
         "markevery" :  MARKEVERY,
         "linestyle" : '-',
         "linewidth" : LINEWIDTH,
-        "label": "Best,slotted,0dB"
+        "label": "Best,slotted"
     }
 
-    slotted_8dB_best_bs_plot_d = {
-        "x": p*lambda_m/lambda_b,
-        "y": (1-sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, False))*p*lambda_m/lambda_b,
-        "color" : 'k',
-        "marker" : "*",
-        "markersize" :  MARKER_SIZE,
-        "markevery" :  MARKEVERY,
-        "linestyle" : '--',
-        "linewidth" : LINEWIDTH,
-        "label": "Best,slotted,8dB"
-    }
+    # slotted_8dB_best_bs_plot_d = {
+    #     "x": p*lambda_m/lambda_b,
+    #     "y": (1-sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, False))*p*lambda_m/lambda_b,
+    #     "color" : 'k',
+    #     "marker" : "*",
+    #     "markersize" :  MARKER_SIZE,
+    #     "markevery" :  MARKEVERY,
+    #     "linestyle" : '--',
+    #     "linewidth" : LINEWIDTH,
+    #     "label": "Best,slotted,8dB"
+    # }
 
     best_bs_plot_d = {
         "x": p*lambda_m/lambda_b,
@@ -115,7 +115,7 @@ if __name__ == '__main__':
         "markevery" :  MARKEVERY,
         "linestyle" : '-.',
         "linewidth" : LINEWIDTH,
-        "label": "Best,\npure,max.interference,8dB"
+        "label": "Best,pure ALOHA,\nmax.interference"
     }
 #=============================================Macro Diversity, 3 cases==================================================
     diver_slot = {
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         "markevery" :  MARKEVERY,
         "linestyle" : '--',
         "linewidth" : LINEWIDTH,
-        "label": "Diversity,\npure,avg.interference"
+        "label": "Diversity,pure ALOHA,\n avg.interference"
     }
 
     diver_pure_max_itf = {
@@ -151,12 +151,16 @@ if __name__ == '__main__':
         "markevery" :  MARKEVERY,
         "linestyle" : '-.',
         "linewidth" : LINEWIDTH,
-        "label": "Diversity,\npure, max.interference,0dB"
+        "label": "Diversity,pure ALOHA, \n max.interference,0dB"
     }
 #=============================================Macro Diversity, 3 cases==================================================
 
-    line_d = [slotted_0dB_best_bs_plot_d, slotted_8dB_best_bs_plot_d, best_bs_plot_d, diver_slot, diver_pure_avg_itf,\
-    diver_pure_max_itf
+    line_d = [
+        slotted_0dB_best_bs_plot_d,
+        best_bs_plot_d,
+        diver_slot,
+        diver_pure_avg_itf,
+        diver_pure_max_itf
     ]
 
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)

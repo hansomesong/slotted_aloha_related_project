@@ -13,9 +13,10 @@ import pandas as pd
 import glob
 
 params = {
-    'legend.fontsize': 15,
-    'xtick.labelsize': 15,
-    'ytick.labelsize': 15,
+    'legend.numpoints': 2,
+    'legend.fontsize': 20,
+    'xtick.labelsize': 20,
+    'ytick.labelsize': 20,
     'axes.labelsize': 20,
 }
 plt.rcParams.update(params)
@@ -24,13 +25,17 @@ plt.rcParams.update(params)
 # mpl.rcParams.update({'figure.autolayout': True})
 FIGSIZE = (21, 6)
 
-A_P_IDENTIC = "analytical, $v=1.0$"
-A_P_INCREMENT = "analytical, $v=2.0$"
-A_P_DECREMENT ="analytical, $v=0.5$"
+A_P_IDENTIC = r"analytical, $v=1.0$"
+A_P_INCREMENT = r"analytical, $v=2.0$"
+A_P_DECREMENT = r"analytical, $v=0.5$"
 
-S_P_IDENTIC = "simulation, $v=1.0$, $95\%$ confidence interval"
-S_P_INCREMENT = "simulation, $v=2.0$, $95\%$ confidence interval"
-S_P_DECREMENT = "simulation, $v=0.5$, $95\%$ confidence interval"
+# S_P_IDENTIC = "simulation, $v=1.0$, $95\%$ confidence interval"
+# S_P_INCREMENT = "simulation, $v=2.0$, $95\%$ confidence interval"
+# S_P_DECREMENT = "simulation, $v=0.5$, $95\%$ confidence interval"
+
+S_P_IDENTIC = r"simulation, $v=1.0$"
+S_P_INCREMENT = r"simulation, $v=2.0$"
+S_P_DECREMENT = r"simulation, $v=0.5$"
 
 MAX_TRANS = 5
 LOG_DIR = 'logs'
@@ -55,6 +60,8 @@ X_RANGE = [[0.2, 0.8], [0.4, 1.0], [0.6, 1.3]]
 X_RANGE_STEP = 0.1
 Y_RANGE = [1e-4, 1.0]
 FIG_NAME = "packet_loss_rate_ci.eps"
+LOG_DIR_ABS_PATH = "/Users/qsong/Documents/slotted_aloha_related_project"
+OUTPUT_FIG_DIR = "/Users/qsong/Documents/Final_Thesis/phd-thesis-template-2.2.2/Chapter4/Figures"
 
 
 def sim_data_process(max_trans, traces_dir):
@@ -130,19 +137,19 @@ for case_nb in range(len(SUB_DIR_LIST)):
         sinr = int(SINR_THLD[sinr_index]) # such as 3, 0, -3
         CASE_DIR = "case_{0}dB".format(sinr)
         SUB_DIR = SUB_DIR_LIST[case_nb]
-        ANA_DATA_FOLDED = os.path.join(LOG_DIR, ANA_DIR, SUB_DIR, CASE_DIR)
+        ANA_DATA_FOLDED = os.path.join(LOG_DIR_ABS_PATH, LOG_DIR, ANA_DIR, SUB_DIR, CASE_DIR)
         sigma_s = int(SIGMA_S[case_nb])
         backoff = BACKOFF[sinr_index]
         SUBSUB_DIR = "backoff_{0}".format(backoff)
         CASE_DIR = 'case_{0}dB'.format(sinr)
         POWER_DIR = "l_{0}_m_{1}_sigma_s_{2}".format(1, 1, sigma_s)
-        traces_dir = os.path.join('.', LOG_DIR, SUB_DIR, CASE_DIR, SUBSUB_DIR, POWER_DIR)
+        traces_dir = os.path.join(LOG_DIR_ABS_PATH, LOG_DIR, SUB_DIR, CASE_DIR, SUBSUB_DIR, POWER_DIR)
         sim_no_result = sim_data_process(MAX_TRANS, traces_dir)
         POWER_DIR = "l_{0}_m_{1}_sigma_s_{2}".format(2, 1, sigma_s)
-        traces_dir = os.path.join('.', LOG_DIR, SUB_DIR, CASE_DIR, SUBSUB_DIR, POWER_DIR)
+        traces_dir = os.path.join(LOG_DIR_ABS_PATH, LOG_DIR, SUB_DIR, CASE_DIR, SUBSUB_DIR, POWER_DIR)
         sim_more_result = sim_data_process(MAX_TRANS, traces_dir)
         POWER_DIR = "l_{0}_m_{1}_sigma_s_{2}".format(1, 2, sigma_s)
-        traces_dir = os.path.join('.', LOG_DIR, SUB_DIR, CASE_DIR, SUBSUB_DIR, POWER_DIR)
+        traces_dir = os.path.join(LOG_DIR_ABS_PATH, LOG_DIR, SUB_DIR, CASE_DIR, SUBSUB_DIR, POWER_DIR)
         sim_less_result = sim_data_process(MAX_TRANS, traces_dir)
 
         ana_result_f_no = os.path.join(
@@ -231,7 +238,7 @@ handles, labels = axes[0].get_legend_handles_labels()
 # axes[2].legend(handles[4::1], labels[4::1], loc='best', numpoints=1, fancybox=True, framealpha=0.5)
 ordered_handles = [handles[0], handles[3], handles[1], handles[4], handles[2], handles[5]]
 ordered_lables = [labels[0], labels[3], labels[1], labels[4], labels[2], labels[5]]
-plt.subplots_adjust(wspace=0.06, hspace=0.02)
-plt.legend(ordered_handles, ordered_lables, bbox_to_anchor=(0.12, -0.14, 0.79, 1), loc=8, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
-plt.savefig(os.path.join("figures", FIG_NAME), format='eps', dpi=300, bbox_inches='tight', transparent=True)
+plt.subplots_adjust(wspace=0.08, hspace=0.02)
+plt.legend(ordered_handles, ordered_lables, bbox_to_anchor=(0.12, -0.19, 0.79, 1), loc=8, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
+plt.savefig(os.path.join(OUTPUT_FIG_DIR, FIG_NAME), format='eps', dpi=300, bbox_inches='tight', transparent=True)
 # plt.show()

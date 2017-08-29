@@ -49,7 +49,7 @@ SCALE = ["log", "linear"]
 
 if __name__ == '__main__':
     X_START = 0.0
-    X_END = 5.0
+    X_END = 3.0
     X_STEP = 0.002
     Y_START = 1e-3
     Y_END = 0.6
@@ -189,14 +189,14 @@ if __name__ == '__main__':
     axes.plot(
         p*lambda_m/lambda_b,
         p_f_rx_div_8,
-        color='r',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Diversity,ANA"
+        color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
     )
 
-    axes.plot(
-        p*lambda_m/lambda_b,
-        p_f_rx_div_mrc_8,
-        color='r',  marker='', linestyle='--', linewidth=LINEWIDTH, label="MRC Diversity,ANA"
-    )
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     p_f_rx_div_mrc_8,
+    #     color='m',  marker='', linestyle='--', linewidth=LINEWIDTH, label="MRC Diversity,ANA"
+    # )
 
     axes.plot(
         p*lambda_m/lambda_b,
@@ -204,8 +204,8 @@ if __name__ == '__main__':
         color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
     )
 
-    # Case: take into account background noise
-    # noise = -25
+    # # Case: take into account background noise
+    # noise = -5
     # axes.plot(
     #     p*lambda_m/lambda_b,
     #     sgam.bs_best_atch_op_with_noise_trap_rule(lambda_m, lambda_b, gamma, p, thetha_dB, 8, noise, False, True),
@@ -249,16 +249,7 @@ if __name__ == '__main__':
         label="Diversity SIM,8dB shadowing"
     )
 
-    axes.errorbar(
-        sim_intensity_mrc_8dB/10,
-        sim_plr_mrc_8,
-        yerr=[sim_plr_mrc_lower_8, sim_plr_mrc_upper_8],
-        fmt='s',
-        mfc='none',
-        ecolor='r',
-        capthick=2,
-        label="MRC Diversity SIM,8dB shadowing"
-    )
+
 
     axes.errorbar(
         sim_intensity_nst_0dB/10.0,
@@ -281,6 +272,18 @@ if __name__ == '__main__':
         capthick=2,
         label="Nearest SIM,8dB shadowing"
     )
+
+
+    # axes.errorbar(
+    #     sim_intensity_mrc_8dB/10,
+    #     sim_plr_mrc_8,
+    #     yerr=[sim_plr_mrc_lower_8, sim_plr_mrc_upper_8],
+    #     fmt='v',
+    #     mfc='none',
+    #     ecolor='k',
+    #     capthick=2,
+    #     label="MRC Diversity SIM,8dB shadowing"
+    # )
 
     # axes.errorbar(
     #     sim_intensity_best_8dB/10.0,
