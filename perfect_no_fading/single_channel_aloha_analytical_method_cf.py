@@ -90,9 +90,11 @@ if __name__ == "__main__":
     P = np.zeros(MAX_TRANS)
     P[0] = 1
     # 注意： 这里 门限值一定是 分贝单位
-    THRLD = -3.0102999566398121
+    # THRLD = -3.0102999566398121
+    THRLD = 6.0
+
     alpha_start = 0.30
-    l, m = 1, 1
+    l, m = 1, 2
     alpha_end = 0.70
     step = 0.005
     rho = 1
@@ -101,10 +103,10 @@ if __name__ == "__main__":
 
     print result
     #
-    # result_f = "improved_cf_shadowing_analytical_result_threshold={0}dB_l={1}_m={2}_sigma={3}.csv".format(THRLD, l, m, SIGMA)
-    #
-    # with open(result_f, 'w') as f_handler:
-    #     spamwriter = csv.writer(f_handler, delimiter=',')
-    #     for n, vector_p in enumerate(result, 1):
-    #         print n, vector_p
-    #         spamwriter.writerow(vector_p)
+    result_f = "analytical_result_threshold={0}dB_l={1}_m={2}_sigma={3}.csv".format(THRLD, l, m, 0)
+
+    with open(result_f, 'w') as f_handler:
+        spamwriter = csv.writer(f_handler, delimiter=',')
+        for n, vector_p in enumerate(result, 1):
+            print n, vector_p
+            spamwriter.writerow(vector_p)
