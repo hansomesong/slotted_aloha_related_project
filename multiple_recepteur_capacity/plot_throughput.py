@@ -36,10 +36,10 @@ SUB_DIR = 'multiple_reception'
 CASE_DIR = 'fading'
 SUB_CASE_DIR = "bs_0.01_p_0.002_R_40|100"
 DATA_FOLDED = '.'
-FIGSIZE = (12, 10)
+FIGSIZE = (12, 8)
 
 X_START = 0.0
-X_END = .1
+X_END = 3.0
 X_STEP = 0.002
 Y_START = 1e-3
 Y_END = 0.5
@@ -47,13 +47,14 @@ Y_STEP = 0.1
 
 MAX_TRANS = 1
 LINEWIDTH = 3
-MARKEVERY= 200
+MARKEVERY= 20
 MARKER_SIZE = 11
 
 SCALE = ["log", "linear"]
 
 if __name__ == '__main__':
-
+    FIG_DST = "/Users/qsong/Documents/Final_Thesis/phd-thesis-template-2.2.2/Chapter5/Figures"
+    FIG_NAME = 'pure_slot_throughput_mpr.eps'
 
     # 生成 lambda_m 的 ndarray
     lambda_m = np.linspace(0, X_END, 1000)
@@ -64,7 +65,7 @@ if __name__ == '__main__':
     p = 0.08
     thetha_dB = 3.0 # unit dB
 
-    Y_END = p*X_END
+    # Y_END = p*X_END
 
     # Define p_f_2 as the outage probability over infinite plane
     pure_p_f_rx_div_8 = sgam.bs_rx_div_thrpt(lambda_m, lambda_b, gamma, p, thetha_dB, 8, True)
@@ -81,12 +82,36 @@ if __name__ == '__main__':
 
 
 
-#=============================================Best, 3 cases==================================================
-    slotted_0dB_best_bs_plot_d = {
+#=============================================MRC macro diveristy, 2 cases==================================================
+    mrc_diver_pure_max_itf = {
+        "x": p*lambda_m/lambda_b,
+        "y": sgam.bs_rx_div_mrc_thrpt(lambda_m, lambda_b, gamma, p, thetha_dB, 0, True, False), # In fact has nothing to do with shadowing effect
+        "color" : 'm',
+        "marker" : 'v',
+        "markersize" :  MARKER_SIZE,
+        "markevery" :  MARKEVERY,
+        "linestyle" : ':',
+        "linewidth" : LINEWIDTH,
+        "label": "SC Diversity,pure ALOHA,\n max.interference"
+    }
+
+    mrc_diver_pure_avg_itf = {
+        "x": p*lambda_m/lambda_b,
+        "y": sgam.bs_rx_div_mrc_thrpt(lambda_m, lambda_b, gamma, p, thetha_dB, 0, True, True),
+        "color" : 'm',
+        "marker" : '^',
+        "markersize" :  MARKER_SIZE,
+        "markevery" :  MARKEVERY,
+        "linestyle" : ':',
+        "linewidth" : LINEWIDTH,
+        "label": "MRC Diversity,pure ALOHA,\n avg.interference"
+    }
+    #=============================================Best attach, 1 cases==================================================
+    best_slot = {
         "x": p*lambda_m/lambda_b,
         "y": (1-sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0, False))*p*lambda_m/lambda_b,
-        "color" : 'k',
-        "marker" : 'v',
+        "color" : 'b',
+        "marker" : 's',
         "markersize" :  MARKER_SIZE,
         "markevery" :  MARKEVERY,
         "linestyle" : '-',
@@ -94,41 +119,7 @@ if __name__ == '__main__':
         "label": "Best,slotted"
     }
 
-    # slotted_8dB_best_bs_plot_d = {
-    #     "x": p*lambda_m/lambda_b,
-    #     "y": (1-sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, False))*p*lambda_m/lambda_b,
-    #     "color" : 'k',
-    #     "marker" : "*",
-    #     "markersize" :  MARKER_SIZE,
-    #     "markevery" :  MARKEVERY,
-    #     "linestyle" : '--',
-    #     "linewidth" : LINEWIDTH,
-    #     "label": "Best,slotted,8dB"
-    # }
-
-    best_bs_plot_d = {
-        "x": p*lambda_m/lambda_b,
-        "y": (1-sgam.bs_best_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0, True, False))*p*lambda_m/lambda_b,
-        "color" : 'k',
-        "marker" : '^',
-        "markersize" :  MARKER_SIZE,
-        "markevery" :  MARKEVERY,
-        "linestyle" : '-.',
-        "linewidth" : LINEWIDTH,
-        "label": "Best,pure ALOHA,\nmax.interference"
-    }
-#=============================================Macro Diversity, 3 cases==================================================
-    diver_slot = {
-        "x": p*lambda_m/lambda_b,
-        "y": sgam.bs_rx_div_thrpt(lambda_m, lambda_b, gamma, p, thetha_dB, 0, False),
-        "color" : 'r',
-        "marker" : 's',
-        "markersize" :  MARKER_SIZE,
-        "markevery" :  MARKEVERY,
-        "linestyle" : '-',
-        "linewidth" : LINEWIDTH,
-        "label": "Diversity,slot"
-    }
+    #=============================================Macro Diversity, 3 cases==================================================
 
     diver_pure_avg_itf = {
         "x": p*lambda_m/lambda_b,
@@ -139,7 +130,7 @@ if __name__ == '__main__':
         "markevery" :  MARKEVERY,
         "linestyle" : '--',
         "linewidth" : LINEWIDTH,
-        "label": "Diversity,pure ALOHA,\n avg.interference"
+        "label": "SC Diversity,pure ALOHA,\n avg.interference"
     }
 
     diver_pure_max_itf = {
@@ -149,16 +140,16 @@ if __name__ == '__main__':
         "marker" : 'd',
         "markersize":  MARKER_SIZE,
         "markevery" :  MARKEVERY,
-        "linestyle" : '-.',
+        "linestyle" : '--',
         "linewidth" : LINEWIDTH,
-        "label": "Diversity,pure ALOHA, \n max.interference,0dB"
+        "label": "Diversity,pure ALOHA, \n max.interference"
     }
 #=============================================Macro Diversity, 3 cases==================================================
 
     line_d = [
-        slotted_0dB_best_bs_plot_d,
-        best_bs_plot_d,
-        diver_slot,
+        mrc_diver_pure_max_itf,
+        mrc_diver_pure_avg_itf,
+        best_slot,
         diver_pure_avg_itf,
         diver_pure_max_itf
     ]
@@ -182,7 +173,7 @@ if __name__ == '__main__':
 
     axes.legend(loc=4)
     axes.grid()
-    # axes.axis([X_START, X_END, Y_START, Y_END])
+    axes.axis([X_START, X_END, Y_START, Y_END])
     axes.set_xlabel(r"Normalized Load")
     axes.set_ylabel("Spatial throughput")
 
@@ -211,7 +202,7 @@ if __name__ == '__main__':
     #
     # mark_inset(axes, axins, loc1=2, loc2=4, fc="none", ec="0.5")
 
-    plt.savefig('pure_slot_throughput_mpr.eps', format='eps', dpi=300)
+    plt.savefig(os.path.join(FIG_DST, FIG_NAME), format='eps', dpi=300)
 
     plt.show()
 

@@ -33,7 +33,7 @@ SUB_DIR = 'multiple_reception'
 CASE_DIR = 'fading'
 SUB_CASE_DIR = "bs_0.01_p_0.002_R_40|100"
 DATA_FOLDED = '.'
-FIGSIZE = (8, 6)
+FIGSIZE = (10, 6)
 
 A_P_DECREMENT ="analytical, power decrement"
 A_P_IDENTIC = "analytical, identical power"
@@ -49,10 +49,10 @@ SCALE = ["log", "linear"]
 
 if __name__ == '__main__':
     X_START = 0.0
-    X_END = 3.0
+    X_END = 7.0
     X_STEP = 0.002
     Y_START = 1e-3
-    Y_END = 0.6
+    Y_END = 1.0
     Y_STEP = 0.1
 
     MAX_TRANS = 1
@@ -189,14 +189,14 @@ if __name__ == '__main__':
     axes.plot(
         p*lambda_m/lambda_b,
         p_f_rx_div_8,
-        color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
+        color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="SC Diversity,ANA"
     )
 
-    # axes.plot(
-    #     p*lambda_m/lambda_b,
-    #     p_f_rx_div_mrc_8,
-    #     color='m',  marker='', linestyle='--', linewidth=LINEWIDTH, label="MRC Diversity,ANA"
-    # )
+    axes.plot(
+        p*lambda_m/lambda_b,
+        p_f_rx_div_mrc_8,
+        color='m',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA"
+    )
 
     axes.plot(
         p*lambda_m/lambda_b,
@@ -235,7 +235,7 @@ if __name__ == '__main__':
         mfc='none',
         ecolor='r',
         capthick=2,
-        label="Diversity SIM,no shadowing"
+        label="SC Diversity SIM,no shadowing"
     )
 
     axes.errorbar(
@@ -246,7 +246,7 @@ if __name__ == '__main__':
         mfc='none',
         ecolor='r',
         capthick=2,
-        label="Diversity SIM,8dB shadowing"
+        label="SC Diversity SIM,8dB shadowing"
     )
 
 
@@ -274,16 +274,16 @@ if __name__ == '__main__':
     )
 
 
-    # axes.errorbar(
-    #     sim_intensity_mrc_8dB/10,
-    #     sim_plr_mrc_8,
-    #     yerr=[sim_plr_mrc_lower_8, sim_plr_mrc_upper_8],
-    #     fmt='v',
-    #     mfc='none',
-    #     ecolor='k',
-    #     capthick=2,
-    #     label="MRC Diversity SIM,8dB shadowing"
-    # )
+    axes.errorbar(
+        sim_intensity_mrc_8dB/10,
+        sim_plr_mrc_8,
+        yerr=[sim_plr_mrc_lower_8, sim_plr_mrc_upper_8],
+        fmt='v',
+        mfc='none',
+        ecolor='k',
+        capthick=2,
+        label="MRC Diversity SIM,8dB shadowing"
+    )
 
     # axes.errorbar(
     #     sim_intensity_best_8dB/10.0,

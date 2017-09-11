@@ -34,13 +34,13 @@ SUB_DIR = 'multiple_reception'
 CASE_DIR = 'fading'
 SUB_CASE_DIR = "bs_0.01_p_0.002_R_40|100"
 DATA_FOLDED = '.'
-FIGSIZE = (8, 6)
+FIGSIZE = (10, 6)
 
 if __name__ == '__main__':
 
 
     # 生成 lambda_m 的 ndarray
-    X_END = 0.03
+    X_END = 0.07
 
     lambda_m = np.linspace(0, X_END, 190)
     # 原则上我们让 基站的密度是个肯定值，毕竟这个东西投资大，没必要变化 lambda_b
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     X_START = 0.0
     X_STEP = 0.002
     Y_START = 1e-3
-    Y_END = 0.5
+    Y_END = 1.0
     Y_STEP = 0.1
 
     MAX_TRANS = 1
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     axes.plot(
         p*lambda_m/lambda_b,
         pure_p_f_rx_div_8,
-        color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity,ANA"
+        color='r',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="SC Diversity,ANA"
     )
 
 
@@ -138,11 +138,11 @@ if __name__ == '__main__':
     p_f_rx_div_mrc_0 = 1-erf(0.75*np.power(p*lambda_m/lambda_b*np.sqrt(np.pi*theta), -1))
     print "p_f_rx_div_mrc_0", p_f_rx_div_mrc_0
     # p_f_rx_div_mrc_0 = sgam.num_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8, pure=False, itf_mean=True)
-    # axes.plot(
-    #     p*lambda_m/lambda_b,
-    #     p_f_rx_div_mrc_0,
-    #     color='m',  marker='', linestyle='-.', linewidth=LINEWIDTH, label="Diversity MRC,ANA"
-    # )
+    axes.plot(
+        p*lambda_m/lambda_b,
+        p_f_rx_div_mrc_0,
+        color='m',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA"
+    )
     axes.errorbar(
         sim_intensity_0dB/10.0,
         sim_plr_divers_0_pure,
@@ -151,7 +151,7 @@ if __name__ == '__main__':
         mfc='none',
         ecolor='r',
         capthick=2,
-        label="Diversity,SIM, 0dB shadowing"
+        label="SC Diversity,SIM,0dB shadowing"
     )
 
     axes.errorbar(
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         mfc='none',
         ecolor='r',
         capthick=2,
-        label="Diversity,SIM, 8dB shadowing"
+        label="SC Diversity,SIM,8dB shadowing"
     )
 
     axes.errorbar(
@@ -218,7 +218,7 @@ if __name__ == '__main__':
     axes.plot(
         p*lambda_m/lambda_b,
         pure_p_f_bs_nst_att_0,
-        color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Best,ANA, 8dB shadowing"
+        color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
     )
     axes.grid()
     axes.axis([X_START, X_END, Y_START, Y_END])

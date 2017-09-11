@@ -92,7 +92,7 @@ if __name__ == '__main__':
     # print sim_plr
 
     width  = 40
-    intensity = 0.4
+    intensity = 0.3
     density_bs = 0.01
     bs_nb = int(np.random.poisson(density_bs*np.power(width, 2)))
     device_nb = int(np.random.poisson(intensity*np.power(width, 2)))
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     # coordinates_devices_array = zip(device_x_array, device_y_array)
     # coordinates_bs_array = zip(bs_x_array, bs_y_array)
 
-    fig = plt.figure(figsize=(5, 5))
+    fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
     # ax.set_title("One realization of device and Bs spatial distribution", fontsize=18)
     ax.set_xlabel("X-axis", fontsize=12)
@@ -132,6 +132,8 @@ if __name__ == '__main__':
     bs_y_array_2 = bs_rho*np.sin(bs_arguments)
     ax.scatter(device_x_array_2, device_y_array_2, marker='o', cmap=cm.jet, label="Device")
     ax.scatter(bs_x_array_2, bs_y_array_2, marker='*', color='r', s=80, cmap=cm.jet, label="BS")
+    ax.set_xlim([-20, 20])
+    ax.set_ylim([-20, 20])
     ax.legend(loc='best', numpoints=1)
 
     # plt.savefig('throughput_shadowing_case1.eps', format='eps', dpi=300)

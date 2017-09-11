@@ -328,6 +328,7 @@ def bs_rx_div_mrc_op(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=Fal
     This method is used to calculate the outage probability for the case where
     1) each device employs a 'fire and forget' emission strategy;
     2) Maximum Ratio Combining is used.
+    3) This method is only valid for gamma = 4.0!!!
     All the BSes are the potential receiver for the considered device.
     :param lambda_m:    numpy array, spatial device density array
     :param lambda_b:    scalar, spatial BS density
@@ -338,34 +339,19 @@ def bs_rx_div_mrc_op(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=Fal
     :param pure:        boolean, False refers to slotted Aloha otherwise pure Aloha (i.e., non-slotted Aloha)
     :return: numpy array, the outage probability as function of lambda_m
     """
+    if gamma != 4.0:
+        exit("This method is only valide for gamma = 4.0")
     THETA = np.power(10, thetha_dB/10)
-    BETA = np.log(10.0)/10.0
-    sigma = BETA*sigma_dB
-    sigma_X = 2.0*sigma/gamma
 
-
-
-    variant_1 = p*lambda_m/lambda_b
     if not pure:
-        k = np.pi*gamma_f(1-2.0/gamma)
+        A = 1.0
     else:
         if itf_mean:
-            factor = 2*gamma/(2+gamma)
+            A = 4.0/3
         else:
-            factor = 2.0
-        k = np.pi*gamma_f(1-2.0/gamma)*factor
+            A = 2.0
 
-    # Fractional moment of fading effect
-    fm_fading = gamma_f(1+2.0/gamma)
-    # Fractional moment of shadowing effect
-    fm_shadowing = np.exp(0.5*sigma_X**2)
-
-    # In this case, shadowing effect related term is not present in the constant_A...
-    constant_A = p*lambda_m*k*fm_fading*np.power(THETA, 2.0/gamma)
-    constant_B = constant_A/(lambda_b*np.pi)
-    # B_power = np.power(1+np.pi*sigma_X**2/8.0, -0.5)
-    # return np.exp(1.0/(1+np.power(constant_B, B_power))-np.exp(0.5*(2.0*sigma/gamma)**2)/constant_B)
-    return np.exp(-1.0/constant_B)
+    return 1-erf(np.power(A*p*lambda_m/lambda_b*np.sqrt(np.pi*THETA), -1))
 
 def bs_nearest_atch_thrpt(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=False, itf_mean=True):
     """
@@ -409,6 +395,10 @@ def bs_nearest_atch_thrpt(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pur
 def bs_rx_div_thrpt(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=False, itf_mean=True):
 
     return p*lambda_m*(1-bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure, itf_mean))/lambda_b
+
+def bs_rx_div_mrc_thrpt(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=False, itf_mean=True):
+
+    return p*lambda_m*(1-bs_rx_div_mrc_op(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure, itf_mean))/lambda_b
 
 def sim_data_process(folder_dir):
     sim_intensity = []
@@ -562,6 +552,29 @@ def min_tx_power_best_case(p_outage, p_f_target, lambda_b, gamma, thetha_dB, sig
     term2 = THETA * np.power(np.log(1.0/p_outage)/term1, gamma/2) * np.power(np.log(1.0/(1-p_f_target)), -1)
 
     return term2
+
+def min_bs_intensity_best_case(p_outage, p_f_target, normalized_n, gamma, thetha_dB, sigma_dB):
+    """
+    This method is used to calculate the minimum required BS intensity, if the network wants to keep a QoS level
+    (measured by outage probability). Note that we assume that the transmit power is always 1.0, and the background
+    is normalized.
+
+    Note that for a noise limited system, the slotted or non-slotted ALOHA has no impact to the performance.
+    :param p_outage:
+    :param p_f_target:
+    :param lambda_b:
+    :param gamma:
+    :param thetha_dB:
+    :param sigma_dB:
+    :return:
+    """
+    THETA = np.power(10, thetha_dB/10.0)
+    BETA = np.log(10.0)/10.0
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/gamma
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    return np.power(np.pi*fm_shadowing, -1.0) * np.log(1.0/p_outage) * \
+           np.power(np.log(1.0/(1-p_f_target))/THETA/normalized_n, -2.0/gamma)
 
 
 
