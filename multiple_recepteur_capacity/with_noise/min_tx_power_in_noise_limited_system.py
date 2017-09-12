@@ -211,7 +211,7 @@ if __name__ == "__main__":
     axes.plot(
         p_outages,
         min_tx_power_array,
-        color='r',  marker='*', linestyle='--', linewidth=2, markevery=MARKER_EVERY, label="Macro diversity"
+        color='r',  marker='*', linestyle='--', linewidth=2, markevery=MARKER_EVERY, label="SC Macro diversity"
     )
 
 

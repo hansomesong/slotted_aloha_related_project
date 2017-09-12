@@ -1,6 +1,6 @@
 {
-"METHOD":       "BS_RX_DIVERS",
-"MAX_TRANS":    1,
+"METHOD":       "BS_BEST_ATT",
+"MAX_TRANS":    2,
 "L":            1,
 "M":            1,
  "DELTA":        0.0000001,
@@ -11,15 +11,15 @@
 "INTENSITY_BS": 0.08,
  "BINOMIAL_P": 0.008,
 "WARM_UP":      0,
-"STAT_PERCENTS":      [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+"STAT_PERCENTS":      [1.0],
 "BACKOFF":      36,
-"SIM_DURATION": [1000, 100],
+"SIM_DURATION": [2000, 100],
 "SIM_REPEAT_NB":1,
 "MU_FADING":    1.0,
 "MU_SHADOWING": 0.0,
 "SIGMA_SHADOWING": 0.0,
-"WIDTH": 40,
+"WIDTH": 30,
 "COORD_TYPE" : "Polar",
 "PATH_LOSS": 4,
-"NB_PROCESS": 2
+"NB_PROCESS": 3
 }
