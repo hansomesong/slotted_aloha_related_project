@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     MAX_TRANS = 5
     DELTA = 0.00001
-    SIGMA = 2.0
+    SIGMA = 2.0 # 3dB
     P = np.zeros(MAX_TRANS)
     P[0] = 1
     # 注意： 这里 门限值一定是 分贝单位

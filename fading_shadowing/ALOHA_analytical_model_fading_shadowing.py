@@ -84,19 +84,21 @@ if __name__ == "__main__":
 
     MAX_TRANS = 5
     DELTA = 0.0000001
-    SIGMA = np.sqrt(2)*np.log(10)/10.0
+    # .000000000001 refer to case that perfect control
+    SIGMA_DB = .000000000001 # unit decibel
+    SIGMA = np.sqrt(2)*np.log(10)/10.0*SIGMA_DB
     P = np.zeros(MAX_TRANS)
     P[0] = 1
-    THRLD = 6.0  #unit dB
+    THRLD = -3.0  #unit dB
     THRLD = 10**(THRLD/10.0) # decimal
     alpha_start = 0.2
-    l, m = 2, 1
+    l, m = 1, 2
     alpha_end = 2.02
     step = 0.005
 
     result = do_analytic(P, DELTA, alpha_start, alpha_end, l, m, SIGMA, THRLD, step)
 
-    result_f = "analytical_result_threshold={0}dB_l={1}_m={2}_sigma=6.csv".format(10*np.log10(THRLD), l, m)
+    result_f = "analytical_result_K={3}_threshold={0}dB_l={1}_m={2}_mufading=1_sigma={4}.csv".format(10*np.log10(THRLD), l, m, MAX_TRANS, int(SIGMA_DB))
     with open(result_f, 'w') as f_handler:
         spamwriter = csv.writer(f_handler, delimiter=',')
         for n, vector_p in enumerate(result, 1):
