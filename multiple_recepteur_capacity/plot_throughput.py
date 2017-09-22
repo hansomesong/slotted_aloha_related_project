@@ -39,7 +39,7 @@ DATA_FOLDED = '.'
 FIGSIZE = (12, 8)
 
 X_START = 0.0
-X_END = 3.0
+X_END = 5.0
 X_STEP = 0.002
 Y_START = 1e-3
 Y_END = 0.5
@@ -92,7 +92,7 @@ if __name__ == '__main__':
         "markevery" :  MARKEVERY,
         "linestyle" : ':',
         "linewidth" : LINEWIDTH,
-        "label": "SC Diversity,pure ALOHA,\n max.interference"
+        "label": "MRC Diversity,pure ALOHA,\n max.interference"
     }
 
     mrc_diver_pure_avg_itf = {
@@ -142,7 +142,7 @@ if __name__ == '__main__':
         "markevery" :  MARKEVERY,
         "linestyle" : '--',
         "linewidth" : LINEWIDTH,
-        "label": "Diversity,pure ALOHA, \n max.interference"
+        "label": "SC Diversity,pure ALOHA, \n max.interference"
     }
 #=============================================Macro Diversity, 3 cases==================================================
 

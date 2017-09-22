@@ -124,6 +124,19 @@ if __name__ == '__main__':
     sim_plr_lower_best_8_pure = [element[1]-element[0] for element in sim_plr_list_best_8dB]
     sim_plr_upper_best_8_pure = [element[2]-element[1] for element in sim_plr_list_best_8dB]
 
+
+
+    # Get simulation results for MRC, before deadline
+    bs_rx_div_mrc_sigma_8_pure = glob.glob(os.path.join(
+        "..", LOG_DIR, SUB_DIR, "fading_shadowing", "pure_aloha", "mean_interference", "p_0.008_bs_0.08_R_40",
+        "BS_RX_DIVERS_MRC", "sigma_8dB", "*.csv")
+    )
+    print "File list:", bs_rx_div_mrc_sigma_8_pure
+    sim_intensity_mrc_max_8dB, sim_plr_list_mrc_max_8dB = sgam.sim_data_process(bs_rx_div_mrc_sigma_8_pure)
+    sim_plr_divers_mrc_max_8_pure = [element[1] for element in sim_plr_list_mrc_max_8dB]
+    sim_plr_lower_divers__mrc_max_8_pure = [element[1]-element[0] for element in sim_plr_list_mrc_max_8dB]
+    sim_plr_upper_divers_mrc_max_8_pure = [element[2]-element[1] for element in sim_plr_list_mrc_max_8dB]
+
     fig, axes = plt.subplots(1, 1, figsize=FIGSIZE, sharey=False)
 
     axes.set_yscale("log")
@@ -186,6 +199,21 @@ if __name__ == '__main__':
     #     capthick=2,
     #     label="Best,SIM,8dB shadowing"
     # )
+
+    axes.errorbar(
+        sim_intensity_mrc_max_8dB/10.0 + 0.1,
+        [element - 0.01 for element in sim_plr_divers_mrc_max_8_pure],
+        yerr=[sim_plr_lower_divers__mrc_max_8_pure, sim_plr_upper_divers_mrc_max_8_pure],
+        fmt='v',
+        mfc='none',
+        ecolor='k',
+        capthick=2,
+        label="MRC,SIM,8dB shadowing"
+    )
+
+    print "sim_intensity_mrc_max_8dB/10.0", sim_intensity_mrc_max_8dB/10.0
+    print "error bar:", sim_plr_lower_divers__mrc_max_8_pure, sim_plr_upper_divers_mrc_max_8_pure
+
     axes.errorbar(
         sim_intensity_nst_0dB/10,
         sim_plr_nst_0_pure,
