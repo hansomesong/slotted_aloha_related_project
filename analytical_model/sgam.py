@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import gamma as gamma_f
 from scipy.special import erf as erf
+from scipy.special import binom as binom
 import scipy.stats as st
 import scipy.integrate as integrate
 
@@ -476,6 +477,7 @@ def best_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=False, itf_mean
     # Fractional moment of fading effect
     fm_fading = gamma_f(1+2.0/gamma)
     B_power = np.power(1+np.pi*sigma_X**2/8.0, 0.5)
+
     return np.power(k*fm_fading*np.power(THETA, 2.0/gamma)/np.pi, -1.0)*np.power(p_max/(1.0-p_max), B_power)
 
 
@@ -522,14 +524,253 @@ def num_op(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=False, itf_me
 
     return np.array(result)
 
-def total_sinr_cf(omega, lambda_m, lambda_b, gamma, p, pure=False, itf_mean=True):
-    # A matrix of dimension len(lambda_m) * len(omega) will be returned.
-    return np.exp(-1*lambda_b*np.pi*frac_moment_calculator(lambda_m, p, gamma)*gamma_f(1-2/gamma)*np.exp(-1j*np.pi/gamma)*np.power(omega, 2/gamma))
+
+
+def mrc_bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=False, itf_mean=True):
+    '''
+        Numerically calculate the packet loss rate in case of Maximum Ratio Combining. A general numerical framework
+    '''
+    theta = np.power(10.0, thetha_dB/10.0)
+    omega_end = 100.0
+    N = 20000
+    omega = np.linspace(0, omega_end, N)
+    eta = 1.0
+    shift_omega = 1j*eta + omega
+
+    result = []
+
+    for element in lambda_m:
+        Y = np.exp(-1j*omega*theta)*total_sinr_cf(
+            shift_omega, element, lambda_b, gamma, p, sigma_dB, pure, itf_mean
+        )/(eta-1j*omega)
+
+        plr = np.exp(eta*1.0*theta)*np.real(np.trapz(y=Y, x=omega))/np.pi
+        print "pure ALOHA:", pure, ", lambda_m:", element, ", packet loss rate:", plr, \
+            ", ref:", 1-erf(0.75*np.power(p*element/lambda_b*np.sqrt(np.pi*theta), -1))
+        result.append(plr)
+
+    return np.array(result)
+
+
+def total_sinr_cf(omega, lambda_m, lambda_b, gamma, p, sigma_dB, pure, itf_mean):
+    """
+    :param omega:
+    :param lambda_m:
+    :param lambda_b:                    scalar, spatial BS density
+    :param gamma:                       scalar, path-loss exponent
+    :param p:                           scalar, transmission probability
+    :param pure:
+    :param itf_mean:
+    :return:
+    """
+    BETA = np.log(10.0)/10.0
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/gamma
+    C = np.pi*gamma_f(1-2.0/gamma)*gamma_f(1+2.0/gamma)
+
+    # Fractional moment of shadowing effect
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    return np.exp(
+        -lambda_b*fm_shadowing*C*itf_frac_moment_calculator(lambda_m, p, sigma_dB, gamma, pure, itf_mean)*np.exp(-1j*np.pi/gamma)*np.power(omega, 2/gamma)
+    )
+
+    # return np.exp(
+    #     -lambda_b*fm_shadowing*C*itf_frac_moment_calculator(lambda_m, p, sigma_dB, gamma, pure, itf_mean)*np.power(-1j*omega, 2/gamma)
+    # )
+
 
 
 def frac_moment_calculator(lambda_m, p, gamma):
     # TODO: The following is just for the special case where gamma = 4. Not a general formula
     return 2*np.power(np.pi, -2)*np.power(p*lambda_m, -1)
+
+
+def itf_frac_moment_calculator(lambda_m, p, sigma_dB, gamma, pure, itf_mean):
+    # TODO: The following is just for the special case where gamma = 4. Not a general formula
+    # 2017-10-12. I have found the general expression for fractional moment calculation problem.
+    BETA = np.log(10.0)/10.0
+    sigma = BETA*sigma_dB
+
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/gamma
+
+    # Fractional moment of shadowing effect
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    A = gamma_f(1-2.0/gamma)*gamma_f(1+2.0/gamma)
+
+    if pure:
+        if itf_mean:
+            A = 2*gamma/(2+gamma) * A
+        else:
+            A = 2.0 * A
+
+    return gamma*np.power(2*gamma_f(2.0/gamma)*p*lambda_m*np.pi*fm_shadowing*A, -1.0)
+
+def cumu_itf_cf(omega, p, lambda_m, gamma, sigma_dB, pure, itf_mean):
+
+    BETA = np.log(10.0)/10.0
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/gamma
+
+    # Fractional moment of shadowing effect
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+    A = gamma_f(1-2.0/gamma)*gamma_f(1+2.0/gamma)
+    if pure:
+        if itf_mean:
+            A = 2*gamma/(2+gamma) * A
+        else:
+            A = 2.0 * A
+
+    return np.exp(
+        -p*lambda_m*np.pi*A*fm_shadowing*np.exp(-1j*np.pi/gamma) * np.power(omega, 2.0/gamma)
+    )
+
+
+def cumu_sir_lt(s, lambda_m, lambda_b, gamma, p, sigma_dB, pure=False, itf_mean=True):
+    """
+    This method is used to calculate the value of Laplace transform, given a complex value s
+    :param s:
+    :param lambda_m:
+    :param lambda_b:
+    :param gamma:
+    :param p:
+    :param sigma_dB:
+    :param pure:
+    :param itf_mean:
+    :return:
+    """
+    # Calculate the fractional moment of cumulative interference
+    fm_cumu_itf = itf_frac_moment_calculator(lambda_m, p, sigma_dB, gamma, pure, itf_mean)
+
+    BETA = np.log(10.0)/10.0
+    sigma = BETA*sigma_dB
+    sigma_X = 2.0*sigma/gamma
+
+    # Fractional moment of shadowing effect
+    fm_shadowing = np.exp(0.5*sigma_X**2)
+
+    C = np.pi*gamma_f(1-2.0/gamma)*gamma_f(1+2.0/gamma)
+
+    return np.exp(
+        -lambda_b * fm_shadowing * C * fm_cumu_itf * np.power(s, 2.0/gamma)
+    )
+
+
+def lt2plr(thetha_dB, lambda_m, lambda_b, gamma, p, sigma_dB, pure, itf_mean):
+    '''
+    This method is used to numerically calculate packet loss rate from laplace transform.
+    The underlying formula originiates from Eq.(35) of reference: "Unified Stochastic Geometry Modeling and Analysis of
+    Cellular Networks in LOS/NLOS and Shadowed Fading".
+
+    :param thetha_dB:       scalar, in unit of dB, capture ratio threshold
+    :param lambda_m:        scalar,
+    :param lambda_b:
+    :param gamma:
+    :param p:
+    :param sigma_dB:
+    :param pure:
+    :param itf_mean:
+    :return:
+    '''
+    T = np.power(10.0, thetha_dB/10.0)
+    #
+    # To avoid any name collision with our namespace. For parameters used in above mentioned is added with append _num
+    A_num = 18.4
+    m_num = 11
+    n_num = 15
+
+    def real_part_lt_of_cdf_theta(x, lambda_m, lambda_b, gamma, p, sigma_dB, pure, itf_mean):
+        return np.real(
+            cumu_sir_lt(x, lambda_m, lambda_b, gamma, p, sigma_dB, pure, itf_mean)/x
+        )
+
+    binom_coeff = np.array([binom(m_num, k) for k in range(m_num + 1)])
+    s_n_k_t_list = []
+    for k in range(m_num+1):
+        a_coeff = np.exp(0.5*A_num) * np.array(
+            [
+                np.power(2*T, -1)
+                    if l == 0
+                    else
+                np.power(T, -1)
+                    for l in range(n_num + k + 1)
+            ]
+        )
+
+        b_coeff = np.array(
+            [
+                np.power(-1.0, l)*
+                real_part_lt_of_cdf_theta(
+                    (A_num+2j*l*np.pi)/2/T,
+                    lambda_m, lambda_b, gamma, p, sigma_dB, pure, itf_mean
+                )
+                for l in range(n_num + k + 1)
+            ]
+        )
+
+        s_n_k_t_list.append(np.sum(a_coeff * b_coeff))
+
+    s_n_k_t = np.array(s_n_k_t_list)
+    result = np.sum(binom_coeff * s_n_k_t) * np.power(2.0, -1.0*m_num)
+
+    return result
+
+
+# def itf_cf2cdf(x, p, lambda_m, gamma, sigma_dB, pure, itf_mean):
+#     """
+#     :param x:                       ndarray,    list of interference values
+#     :param p:                       scalar,     transmission probability
+#     :param lambda_m:                scalar,     devices spatial density
+#     :param gamma:                   scalar,     path-loss exponent
+#     :param thetha_dB:
+#     :param sigma_dB:
+#     :param pure:
+#     :param itf_mean:
+#     :return:
+#     """
+#     EPS = np.finfo(float).eps
+#     omega_end = 500.0
+#     N = 5000
+#     omega = np.linspace(0.0, omega_end, N)
+#     eta = 1.0
+#
+#     shift_omega = 1j*eta + omega
+#     result = []
+#     for element in x:
+#         Y = (1.0/(eta-1j*omega))*np.exp(-1j*omega*element)*cumu_itf_cf(shift_omega, p, lambda_m, gamma, sigma_dB, pure, itf_mean)
+#         result.append(np.exp(eta*element)*np.real(np.trapz(y=Y, x=omega))/np.pi)
+#
+#     result = [0.0 if element<0.00001 else element for element in result]
+#     result[0] = 0.0
+#     print "CDF of CUMU I:", np.array(result)
+#
+#     BETA = np.log(10.0)/10.0
+#     sigma = BETA*sigma_dB
+#     A = gamma_f(1-2.0/gamma)*gamma_f(1+2.0/gamma)
+#     if pure:
+#         if itf_mean:
+#             A = 2*gamma/(2+gamma) * A
+#         else:
+#             A = 2.0 * A
+#     com_f = 1-erf(p*lambda_m*np.pi*A*np.exp(sigma**2/8)/2*np.sqrt(1.0/x))
+#     print "CDF of CUMU I according to formula:", com_f
+#     return result
+
+
+# The following function is depreciated. The quantization error is so huge!
+# def neg_frac_moment_calculator(lambda_m, p, gamma, sigma_dB, pure, itf_mean):
+#     # TODO: The following is just for the special case where gamma = 4. Not a general formula
+#     EPS = np.finfo(float).eps
+#     # The upper bound of intergral is 10.0
+#     X_END = 15.0
+#     # The number of SAMPLE_N also has impact to the finally exactness of framework.
+#     SAMPLE_N = 3000
+#     X = np.linspace(EPS, X_END, SAMPLE_N)
+#     Y =  np.power(X, -2.0/gamma - 1.0) * itf_cf2cdf(X, p, lambda_m, gamma, sigma_dB, pure, itf_mean)
+#     neg_frac_I = 2.0/gamma * np.trapz(y=Y, x=X) - 1.5
+#     print "Numerically obtained neg.frac. I:", neg_frac_I, \
+#         "Analytically obtained neg.frac. I:", itf_frac_moment_calculator(lambda_m, p, sigma_dB, 4.0, pure, itf_mean)
+#     return neg_frac_I
 
 
 def min_tx_power_best_case(p_outage, p_f_target, lambda_b, gamma, thetha_dB, sigma_dB):
@@ -585,7 +826,7 @@ def min_bs_intensity_best_case(p_outage, p_f_target, normalized_n, gamma, thetha
 
 if __name__ == "__main__":
     X_START = 0.0
-    X_END = 0.3
+    X_END = 3.0
     X_STEP = 0.002
     Y_START = 1e-3
     Y_END = 0.6
@@ -594,10 +835,10 @@ if __name__ == "__main__":
     # 生成 lambda_m 的 ndarray
     lambda_m = np.linspace(0, X_END, 100)
     # 原则上我们让 基站的密度是个肯定值，毕竟这个东西投资大，没必要变化 lambda_b
-    lambda_b = 0.004
+    lambda_b = 0.08
     # gamma, path loss component. Usually take 4 as value.
     gamma = 4.0
-    p = 0.04
+    p = 0.008
     thetha_dB = 3.0 # unit dB
 
     p_f_bs_nst_att_0 = bs_nearest_atch_op(lambda_m, lambda_b, gamma, p, thetha_dB, 0)
@@ -608,20 +849,40 @@ if __name__ == "__main__":
     # print p_f_bs_bst_att_8
 
 
-    print "Slotted Aloha"
-    sigma_dB = 0.0
-    pure=False
-    print div_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=False, itf_mean=False)
-    print nst_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=False, itf_mean=True)
-    print best_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=False, itf_mean=True)
-    print "Non slotted Aloha, avg interference"
-    print div_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=True)
-    print nst_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=True)
-    print best_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=True)
-    print "Non slotted Aloha, max interference"
-    print div_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=False)
-    print nst_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=False)
-    print best_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=False)
+
+    # print "Slotted Aloha"
+    # sigma_dB = 0.0
+    # pure=False
+    # print div_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=False, itf_mean=False)
+    # print nst_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=False, itf_mean=True)
+    # print best_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=False, itf_mean=True)
+    # print "Non slotted Aloha, avg interference"
+    # print div_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=True)
+    # print nst_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=True)
+    # print best_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=True)
+    # print "Non slotted Aloha, max interference"
+    # print div_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=False)
+    # print nst_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=False)
+    # print best_bs_max_load(gamma, thetha_dB, sigma_dB, p_max=0.1, pure=True, itf_mean=False)
 
 
+    #============
+    print "Test A general negative moment calculation method..."
+    gamma = 6.0
+    lambda_m = 2.4
+    sigma_dB = 8.0
+    pure = True
+    max_itf = False
+    avg_itf = True
+    # print "Numerically obtained neg.frac. I:", neg_frac_moment_calculator(lambda_m, p, gamma, sigma_dB, pure=pure, itf_mean=avg_itf)
+    # print "Analytically obtained neg.frac. I:", itf_frac_moment_calculator(lambda_m, p, sigma_dB, 4.0, pure=pure, itf_mean=avg_itf)
+    print mrc_bs_rx_div_op([lambda_m], lambda_b, gamma, p, thetha_dB, sigma_dB, pure=pure, itf_mean=avg_itf)
+    print "xxxx:", lt2plr(thetha_dB, lambda_m, lambda_b, gamma, p, sigma_dB, pure=pure, itf_mean=avg_itf)
+    theta = np.power(10.0, 3.0/10)
+    # print 1-erf(0.5*np.power(p*lambda_m/lambda_b*np.sqrt(np.pi*theta), -1))
 
+
+    print gamma_f(1 - 2.0/3.0), gamma_f(1 - 2.0/3.3), gamma_f(1 - 2.0/3.5), gamma_f(1 - 2.0/3.8), gamma_f(1 - 2.0/4.0)
+
+
+    # print num_op(EPS, lambda_b, gamma, p, thetha_dB, sigma_dB, pure=False, itf_mean=True)

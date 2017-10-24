@@ -33,7 +33,7 @@ SUB_DIR = 'multiple_reception'
 CASE_DIR = 'fading'
 SUB_CASE_DIR = "bs_0.01_p_0.002_R_40|100"
 DATA_FOLDED = '.'
-FIGSIZE = (10, 6)
+FIGSIZE = (8, 6)
 
 A_P_DECREMENT ="analytical, power decrement"
 A_P_IDENTIC = "analytical, identical power"
@@ -48,8 +48,12 @@ SCALE = ["log", "linear"]
 
 
 if __name__ == '__main__':
+
+    FIG_DST = "/Users/qsong/Documents/Communication_Letter_MRC"
+    FIG_NAME = "new_packet_loss_rate_mpr.eps"
+
     X_START = 0.0
-    X_END = 7.0
+    X_END = 5.0
     X_STEP = 0.002
     Y_START = 1e-3
     Y_END = 1.0
@@ -150,7 +154,7 @@ if __name__ == '__main__':
     sim_plr_upper_best_8 = [element[2]-element[1] for element in sim_plr_list_best_8dB]
 
     # 生成 lambda_m 的 ndarray
-    lambda_m = np.linspace(0, X_END, 1000)
+    lambda_m = np.linspace(1.0, X_END, 100)
     # 原则上我们让 基站的密度是个肯定值，毕竟这个东西投资大，没必要变化 lambda_b
     lambda_b = 0.08
     # gamma, path loss component. Usually take 4 as value.
@@ -200,9 +204,17 @@ if __name__ == '__main__':
 
     axes.plot(
         p*lambda_m/lambda_b,
-        p_f_bs_nst_att_8,
-        color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
+        sgam.mrc_bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8.0, pure=False, itf_mean=True),
+        color='k',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical"
     )
+
+
+
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     p_f_bs_nst_att_8,
+    #     color='g',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Nearest,ANA,8dB shadowing"
+    # )
 
     # # Case: take into account background noise
     # noise = -5
@@ -220,23 +232,23 @@ if __name__ == '__main__':
     #     color='k',  marker='', linestyle='-', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
     # )
 
-    axes.plot(
-        p*lambda_m/lambda_b,
-        p_f_bs_nst_att_0,
-        color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
-    )
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     p_f_bs_nst_att_0,
+    #     color='b',  marker='', linestyle='--', linewidth=LINEWIDTH, label="Best,ANA,8dB shadowing"
+    # )
 
 
-    axes.errorbar(
-        sim_intensity_0dB/10,
-        sim_plr_0,
-        yerr=[sim_plr_lower_0, sim_plr_upper_0],
-        fmt='*',
-        mfc='none',
-        ecolor='r',
-        capthick=2,
-        label="SC Diversity SIM,no shadowing"
-    )
+    # axes.errorbar(
+    #     sim_intensity_0dB/10,
+    #     sim_plr_0,
+    #     yerr=[sim_plr_lower_0, sim_plr_upper_0],
+    #     fmt='*',
+    #     mfc='none',
+    #     ecolor='r',
+    #     capthick=2,
+    #     label="SC Diversity SIM,\nno shadowing"
+    # )
 
     axes.errorbar(
         sim_intensity_8dB/10,
@@ -246,32 +258,32 @@ if __name__ == '__main__':
         mfc='none',
         ecolor='r',
         capthick=2,
-        label="SC Diversity SIM,8dB shadowing"
+        label="SC Diversity SIM,\n8dB shadowing"
     )
 
 
 
-    axes.errorbar(
-        sim_intensity_nst_0dB/10.0,
-        sim_plr_nst_0,
-        yerr=[sim_plr_lower_nst_0, sim_plr_upper_nst_0],
-        fmt='o',
-        ecolor='b',
-        mfc='none',
-        capthick=2,
-        label="Best SIM, 8dB shadowing"
-    )
+    # axes.errorbar(
+    #     sim_intensity_nst_0dB/10.0,
+    #     sim_plr_nst_0,
+    #     yerr=[sim_plr_lower_nst_0, sim_plr_upper_nst_0],
+    #     fmt='o',
+    #     ecolor='b',
+    #     mfc='none',
+    #     capthick=2,
+    #     label="Best SIM, \n8dB shadowing"
+    # )
 
-    axes.errorbar(
-        sim_intensity_nst_8dB/10.0,
-        sim_plr_nst_8,
-        yerr=[sim_plr_lower_nst_8, sim_plr_upper_nst_8],
-        fmt='d',
-        mfc='none',
-        ecolor='g',
-        capthick=2,
-        label="Nearest SIM,8dB shadowing"
-    )
+    # axes.errorbar(
+    #     sim_intensity_nst_8dB/10.0,
+    #     sim_plr_nst_8,
+    #     yerr=[sim_plr_lower_nst_8, sim_plr_upper_nst_8],
+    #     fmt='d',
+    #     mfc='none',
+    #     ecolor='g',
+    #     capthick=2,
+    #     label="Nearest SIM,8dB shadowing"
+    # )
 
 
     axes.errorbar(
@@ -282,7 +294,7 @@ if __name__ == '__main__':
         mfc='none',
         ecolor='k',
         capthick=2,
-        label="MRC Diversity SIM,8dB shadowing"
+        label="MRC Diversity SIM,\n8dB shadowing"
     )
 
     # axes.errorbar(
@@ -306,6 +318,6 @@ if __name__ == '__main__':
 
     # plt.legend(bbox_to_anchor=(0.119, 0.01, 0.79, 1), loc=1, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
     plt.legend(loc='best')
-    plt.savefig('new_packet_loss_rate_mpr.eps', format='eps', dpi=300)
+    plt.savefig(os.path.join(FIG_DST, FIG_NAME), format='eps', dpi=300)
 
     plt.show()
