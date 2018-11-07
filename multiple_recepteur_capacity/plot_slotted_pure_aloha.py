@@ -257,19 +257,19 @@ if __name__ == '__main__':
     axes.set_ylabel("Packet Loss Rate")
 
     #===================================================MAYBE DELETE THIS PART =========================================
-    lambda_m = np.linspace(15, 30, 100)
-    lambda_b = 0.8
-    axes.plot(
-        p*lambda_m/lambda_b,
-        sgam.mrc_bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8.0, pure=True, itf_mean=True),
-        color='k',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical, CF"
-    )
+    # lambda_m = np.linspace(15, 30, 100)
+    # lambda_b = 0.8
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     sgam.mrc_bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8.0, pure=True, itf_mean=True),
+    #     color='k',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical, CF"
+    # )
 
-    axes.plot(
-        p*lambda_m/lambda_b,
-        [sgam.lt2plr(thetha_dB, x, lambda_b, gamma, p, 8.0, pure=True, itf_mean=True) for x in lambda_m],
-        color='y',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical, LT"
-    )
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     [sgam.lt2plr(thetha_dB, x, lambda_b, gamma, p, 8.0, pure=True, itf_mean=True) for x in lambda_m],
+    #     color='y',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical, LT"
+    # )
     #===================================================MAYBE DELETE THIS PART =========================================
 
     # print zip(p*lambda_m/lambda_b, p_f_rx_div_0)

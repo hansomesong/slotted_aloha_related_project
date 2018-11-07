@@ -1,0 +1,16 @@
+{
+"MAX_TRANS" :   5,
+"l":            2,
+"m":            1,
+"THRESLD":      0.5,
+"alpha_start":  0.8,
+"alpha_end":    1.02,
+"ana_step":     0.005,
+"DELTA":        0.0000001,
+"WARM_UP":      1000,
+"SIM_NB":       1,
+"BACKOFF":      100,
+"sim_step":     0.02,
+"N":            500,
+"SIM_DURATION": 100000
+}
