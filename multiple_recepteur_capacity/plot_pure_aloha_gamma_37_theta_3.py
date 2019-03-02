@@ -8,6 +8,10 @@
 
 # Update 09-15-2018:
 
+# Update 02-08-2019:
+# Xavier suggests to discuss the effect of different BS configurations in MRC, i.e. compare the performance difference
+# when 2, 3, 4 best surrounding BS are involved into MRC.
+
 __author__ = 'qsong'
 
 import csv
@@ -215,7 +219,6 @@ if __name__ == '__main__':
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
     # plt.legend(bbox_to_anchor=(0.119, 0.02, 0.79, 1), loc=1, ncol=3, mode="expand", bbox_transform=plt.gcf().transFigure)
-    plt.savefig(os.path.join(FIG_DST, FIG_NAME), format='pdf', dpi=300)
-
+    # plt.savefig(os.path.join(FIG_DST, FIG_NAME), format='pdf', dpi=300)
     plt.show()
 
