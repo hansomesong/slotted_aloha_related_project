@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-# This script is used to generate figures used in our second IEEE communication letter
+# This script is used to generate figures used in our second IEEE communication letter/Journal of Telecommunication
+# system.
+# The motivation to have such a script is to show the difference between packet loss rate obtained from
+# analytical model, model-based simulation, realistic based simulation
+
 # The idea is to generate three figures for gamma = 3.3, 4.0, 4.5
-# Each figure contains three curves respectively for case: slotted ALOHA, pure ALOHA mean
-# pure ALOHA max
+# Each figure contains three curves respectively for case: slotted ALOHA, pure ALOHA mean, pure ALOHA max
 
 # 2018-01-20
 # Update: our submission to IEEE communication letter has been rejected.

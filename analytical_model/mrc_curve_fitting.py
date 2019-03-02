@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # This script collects all involved method for maximum ratio combining and curve fitting.
 
+# Update 03-02-2019
+# All the modifications made related to curve fitting for MRC (from 01-2018 to 03-2019) are accommodated in this script.
+
 __author__ = 'qsong'
 
 from analytical_model import sgam
@@ -21,7 +24,7 @@ import matplotlib.pyplot as plt
 import pprint
 
 
-
+# It seems that the following constant is never used in this script.
 SIM_FILE_PATH = "/Users/qsong/Documents/slotted_aloha_related_project/logs/SimuAvecFittageDifTetas"
 
 
@@ -350,7 +353,7 @@ def empirical_plr_mrc(thetha_dB, lambda_m, lambda_b, gamma, p, pure, itf_mean):
 
     return 1 - erf(gamma_f(1.0-2.0/gamma)/(2*A*L*T**(2.0/gamma)))
 
-def sim_parser(sim_log_dir, pure, itf_mean, itf_independence):
+def sim_parser(sim_log_dir, pure, itf_mean):
     # UPDATE: 2018-01-22
     # The output data contains two sets of data for SC and MRC macro diversity:
     # with and without interference independence assumption
