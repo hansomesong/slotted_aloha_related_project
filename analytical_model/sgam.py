@@ -423,7 +423,7 @@ def sim_data_process(folder_dir):
     return np.array(sim_intensity), np.array(sim_plr)
 
 def div_max_load(gamma, thetha_dB, p_max=0.1, pure=False, itf_mean=True):
-    THETA = np.power(10, thetha_dB/10)
+    THETA = np.power(10, thetha_dB/10.0)
     if not pure:
         k = np.pi*gamma_f(1-2.0/gamma)
     else:

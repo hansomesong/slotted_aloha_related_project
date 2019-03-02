@@ -154,7 +154,7 @@ if __name__ == '__main__':
     sim_plr_upper_best_8 = [element[2]-element[1] for element in sim_plr_list_best_8dB]
 
     # 生成 lambda_m 的 ndarray
-    lambda_m = np.linspace(1.0, X_END, 100)
+    lambda_m = np.linspace(.5, X_END, 100)
     # 原则上我们让 基站的密度是个肯定值，毕竟这个东西投资大，没必要变化 lambda_b
     lambda_b = 0.08
     # gamma, path loss component. Usually take 4 as value.
@@ -202,11 +202,11 @@ if __name__ == '__main__':
         color='m',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA"
     )
 
-    axes.plot(
-        p*lambda_m/lambda_b,
-        sgam.mrc_bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8.0, pure=False, itf_mean=True),
-        color='k',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical"
-    )
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     sgam.mrc_bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8.0, pure=False, itf_mean=True),
+    #     color='k',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical"
+    # )
 
 
 

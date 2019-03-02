@@ -9,7 +9,7 @@ import os
 import numpy as np
 import matplotlib.ticker as ticker
 import numpy as np
-import scipy.stats as st
+# import scipy.stats as st
 import pandas as pd
 import glob
 
@@ -49,7 +49,7 @@ LINEWIDTH = 2
 def sim_data_process(folder_dir):
     sim_intensity = []
     sim_plr =  []
-    for csv_file in logs_dir:
+    for csv_file in folder_dir:
         csv_df = pd.read_csv(csv_file, sep=',', header=None)
         plr_df = csv_df.values[:, -2]
         # sort the obtained to remove the max and min
@@ -92,12 +92,12 @@ if __name__ == '__main__':
     # print sim_plr
 
     width  = 40
-    intensity = 0.3
+    intensity = 0.05
     density_bs = 0.01
     bs_nb = int(np.random.poisson(density_bs*np.power(width, 2)))
     device_nb = int(np.random.poisson(intensity*np.power(width, 2)))
     print "BS_STATION NUMBER:", bs_nb, "DEVICE_NUMBER:", device_nb
-
+    bs_nb = 0
 
     # device_x_array = np.random.uniform(-width/2.0, width/2.0, device_nb)
     # device_y_array = np.random.uniform(-width/2.0, width/2.0, device_nb)
@@ -134,8 +134,8 @@ if __name__ == '__main__':
     ax.scatter(bs_x_array_2, bs_y_array_2, marker='*', color='r', s=80, cmap=cm.jet, label="BS")
     ax.set_xlim([-20, 20])
     ax.set_ylim([-20, 20])
-    ax.legend(loc='best', numpoints=1)
+    # ax.legend(loc='best', numpoints=1)
 
     # plt.savefig('throughput_shadowing_case1.eps', format='eps', dpi=300)
-    plt.savefig("nodes_spatial_dist.eps", format='eps', dpi=300, bbox_inches='tight', transparent=True)
+    plt.savefig("ppp_spatial_dist.eps", format='eps', dpi=300, bbox_inches='tight', transparent=True)
     plt.show()

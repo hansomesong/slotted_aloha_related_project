@@ -1,0 +1,22 @@
+{
+  "avg": 9,
+  "case_nb":81,
+  "ci": 92,
+  "dept_itf_case":{
+    "slotted_sc_with_shadowing": 1,
+    "slotted_sc_no_shadowing": 2,
+    "slotted_mrc_with_shadowing": 13,
+    "pure_sc_with_shadowing_avg_itf": 5,
+    "pure_mrc_with_shadowing_avg_itf": 14,
+    "pure_sc_with_shadowing_max_itf": 10,
+    "pure_mrc_with_shadowing_max_itf": 15
+  },
+  "idept_itf_case": {
+    "slotted_sc_with_shadowing": 16,
+    "slotted_mrc_with_shadowing": 17,
+    "pure_sc_with_shadowing_avg_itf": 18,
+    "pure_mrc_with_shadowing_avg_itf": 19,
+    "pure_sc_with_shadowing_max_itf": 20,
+    "pure_mrc_with_shadowing_max_itf": 21
+  }
+}

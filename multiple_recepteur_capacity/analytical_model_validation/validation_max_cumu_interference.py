@@ -271,20 +271,23 @@ if __name__ == '__main__':
     #     capthick=2,
     #     label="Best,SIM,8dB shadowing")
 
-    axes.plot(
-        p*lambda_m/lambda_b,
-        p_f_rx_div_mrc_0,
-        color='m',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA"
-    )
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     p_f_rx_div_mrc_0,
+    #     color='m',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA"
+    # )
 
     #===================================================MAYBE DELETE THIS PART =========================================
-    lambda_m = np.linspace(1.0, 3.0, 100)
-    axes.plot(
-        p*lambda_m/lambda_b,
-        sgam.mrc_bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8.0, pure=True, itf_mean=False),
-        color='k',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical"
-    )
+    # lambda_m = np.linspace(1.0, 3.0, 100)
+    # axes.plot(
+    #     p*lambda_m/lambda_b,
+    #     sgam.mrc_bs_rx_div_op(lambda_m, lambda_b, gamma, p, thetha_dB, 8.0, pure=True, itf_mean=False),
+    #     color='k',  marker='', linestyle=':', linewidth=LINEWIDTH, label="MRC Diversity,ANA numerical"
+    # )
     #===================================================MAYBE DELETE THIS PART =========================================
+
+
+    #=====================================Gamma = 3.5 simulation ======================================================
 
     axes.grid()
     axes.axis([X_START, X_END, Y_START, Y_END])
