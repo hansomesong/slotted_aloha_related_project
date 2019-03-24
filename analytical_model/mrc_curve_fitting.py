@@ -464,7 +464,8 @@ def sim_get_load_interval(sim_log_dir, tgt_plr, pure, itf_mean):
 
         tgt_fitted_loads[label] = slop*tgt_plr + intercept
 
-        print label, mrc_load_interval[label], mrc_plr_interval[label], tgt_fitted_loads[label]
+        # print label, mrc_load_interval[label], mrc_plr_interval[label], tgt_fitted_loads[label]
+        print label, slop, intercept
 
     return tgt_fitted_loads
 
@@ -525,6 +526,31 @@ if __name__ == '__main__':
 
     decimal = pd.Series([4,4,2], index=["fitted", "simulation", "error(%)"])
     print final.round(decimal)
+
+
+    # Update 03-02-2019
+    print "Update 03-02-2019..."
+    SIM_LOG_DIR_2 = '/Users/qsong/Documents/slotted_aloha_related_project/logs/SimuApril23'
+    SIM_LOG_DIR_3 = '/Users/qsong/Documents/slotted_aloha_related_project/logs/SimuNov23PlusdePoints'
+
+    # sim_get_load_interval(sim_log_dir=SIM_LOG_DIR_3, tgt_plr=0.1, pure=True, itf_mean=True)
+
+    # 03-02-2019: why the parameters for linear regression obtained are different from the contents in file: sim_fit_result_theta_3.csv?
+    loads, plrs, X_ref, Y_ref, K, B, fit_func, fit_std = sim_curve_fitting("/Users/qsong/Documents/slotted_aloha_related_project/logs/SimuNov23PlusdePoints/AlohaMultg37s8t3.csv",
+                      thetha_dB=3.0, sigma_dB=8, gamma=3.7, pure=True, itf_mean=True, plr_min=0.001, plr_max=0.1)
+
+    print K, B
+    SIM_LOG = os.path.join(SIM_LOG_DIR_2, "AlohaMultg40s8t3b20.csv")
+
+    plr_df = pd.read_csv(SIM_LOG, sep=";", decimal=',', skiprows=9, nrows=15).dropna(axis=1, how='all')
+
+    # print plr_df
+
+
+
+
+
+
 
 
 

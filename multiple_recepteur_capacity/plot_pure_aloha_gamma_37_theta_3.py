@@ -110,6 +110,7 @@ if __name__ == '__main__':
     p_f_rx_div, p_f_mrc_div, fit_p_f_mrc_div, empirical_p_f_mrc_div \
         = mrc_curve_fitting.sc_mrc_anayltical_parser(lambda_m, lambda_b, p, thetha_dB, gammas, PURE, ITF_MEAN)
 
+    # 03-02-2019: If I have ever noted what the following file is used for, it would really save time for me.
     sim_fit_p_f_mrc_div ={}
     sim_fit_log = '/Users/qsong/Documents/slotted_aloha_related_project/analytical_model/sim_fit_result_theta_3.csv'
 
